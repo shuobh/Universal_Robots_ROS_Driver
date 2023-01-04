@@ -903,6 +903,18 @@ void HardwareInterface::transformForceTorque()
 
   fts_measurements_ = { tcp_force_.x(),  tcp_force_.y(),  tcp_force_.z(),
                         tcp_torque_.x(), tcp_torque_.y(), tcp_torque_.z() };
+  double force_magnitude = sqrt(pow(tcp_force_.x(), 2) + pow(tcp_force_.y(), 2) + pow(tcp_force_.z(), 2));
+  if(force_magnitude > 300.0) {
+    if (safety_mode_pub_)
+    {
+      if (safety_mode_pub_->trylock())
+      {
+        safety_mode_pub_->msg_.mode = ur_dashboard_msgs::SafetyMode::PROTECTIVE_STOP;
+        safety_mode_pub_->unlockAndPublish();
+        cancelInterpolation();
+      }
+    }
+  }
 }
 
 bool HardwareInterface::isRobotProgramRunning() const
