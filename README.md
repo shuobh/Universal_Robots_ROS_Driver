@@ -130,8 +130,8 @@ $ mkdir -p catkin_ws/src && cd catkin_ws
 # clone the driver
 $ git clone https://github.com/UniversalRobots/Universal_Robots_ROS_Driver.git src/Universal_Robots_ROS_Driver
 
-# clone fork of the description. This is currently necessary, until the changes are merged upstream.
-$ git clone -b calibration_devel https://github.com/fmauch/universal_robot.git src/fmauch_universal_robot
+# clone the description. Currently, it is necessary to use the melodic-devel branch.
+$ git clone -b melodic-devel https://github.com/ros-industrial/universal_robot.git src/universal_robot
 
 # install dependencies
 $ sudo apt update -qq
@@ -155,7 +155,7 @@ $ source /opt/ros/<your_ros_version>/setup.bash
 $ mkdir -p catkin_ws/src && cd catkin_ws
 $ git clone -b boost https://github.com/UniversalRobots/Universal_Robots_Client_Library.git src/Universal_Robots_Client_Library
 $ git clone https://github.com/UniversalRobots/Universal_Robots_ROS_Driver.git src/Universal_Robots_ROS_Driver
-$ git clone -b calibration_devel https://github.com/fmauch/universal_robot.git src/fmauch_universal_robot
+$ git clone -b melodic-devel https://github.com/ros-industrial/universal_robot.git src/universal_robot
 $ sudo apt update -qq
 $ rosdep update
 $ rosdep install --from-paths src --ignore-src -y
@@ -166,7 +166,7 @@ $ source devel_isolated/setup.bash
 ## Setting up a UR robot for ur_robot_driver
 ### Prepare the robot
 For using the *ur_robot_driver* with a real robot you need to install the
-**externalcontrol-1.0.4.urcap** which can be found inside the **resources** folder of this driver.
+**externalcontrol-x.x.x.urcap** which can be found [here](https://github.com/UniversalRobots/Universal_Robots_ExternalControl_URCap/releases).
 
 **Note**: For installing this URCap a minimal PolyScope version of 3.7 or 5.1 (in case of e-Series) is
 necessary.
