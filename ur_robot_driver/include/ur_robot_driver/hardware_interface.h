@@ -37,6 +37,7 @@
 #include <std_msgs/Bool.h>
 #include <std_msgs/Float64.h>
 #include <std_msgs/String.h>
+#include <std_srvs/SetBool.h>
 #include <std_srvs/Trigger.h>
 #include <realtime_tools/realtime_publisher.h>
 #include <tf2_msgs/TFMessage.h>
@@ -238,7 +239,8 @@ protected:
   ros::ServiceServer tare_sensor_srv_;
   ros::ServiceServer set_payload_srv_;
   ros::ServiceServer set_sharpness_srv_;
-
+  ros::ServiceServer set_freedrive_srv_;
+  
   hardware_interface::JointStateInterface js_interface_;
   scaled_controllers::ScaledPositionJointInterface spj_interface_;
   hardware_interface::PositionJointInterface pj_interface_;

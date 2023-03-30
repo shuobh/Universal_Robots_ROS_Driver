@@ -474,6 +474,19 @@ bool HardwareInterface::init(ros::NodeHandle& root_nh, ros::NodeHandle& robot_hw
         }
         return true;
       });
+
+  // Enable freedrive through a ROS service
+  set_freedrive_srv_ = robot_hw_nh.advertiseService<std_srvs::SetBool::Request, std_srvs::SetBool::Response>(
+      "set_freedrive", [&](std_srvs::SetBool::Request& req, std_srvs::SetBool::Response& resp) {
+        if(req.data) {
+          resp.success = ur_driver_->writeFreedriveControlMessage(urcl::control::FreedriveControlMessage::FREEDRIVE_START);
+        } else {
+          resp.success = ur_driver_->writeFreedriveControlMessage(urcl::control::FreedriveControlMessage::FREEDRIVE_STOP);
+        }
+        return true;
+      });
+
+
   return true;
 }
 
