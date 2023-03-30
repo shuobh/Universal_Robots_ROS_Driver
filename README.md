@@ -46,7 +46,7 @@ To create an issue on the [Issue Board](https://github.com/UniversalRobots/Unive
 If you need help using this driver, please see the ROS-category in the [UR+ Developer Forum](https://forum.universal-robots.com/c/ros). 
 
 ## Features
- * Works for all **CB3 (with software version >= 3.7) and e-Series (software >= 5.1)** robots and uses the RTDE interface for communication, whenever possible.
+ * Works for all **CB3 (with software version >= 3.12.0) and e-Series (software >= 5.5.1)** robots and uses the RTDE interface for communication, whenever possible.
  * **Factory calibration** of the robot inside ROS to reach Cartesian
    targets precisely.
  * **Realtime-enabled** communication structure to robustly cope with the 2ms cycle time of the
@@ -83,9 +83,6 @@ Please see the external [feature list](ur_robot_driver/doc/features.md) for a li
 ## Contents
 This repository contains the new **ur_robot_driver** and a couple of helper packages, such as:
 
-  * **controller_stopper**: A small external tool that stops and restarts ros-controllers based on
-    the robot's state. This can be helpful when the robot is in a state where it won't accept
-    commands sent from ROS.
   * **ur_calibration**: Package around extracting and converting a robot's factory calibration
     information to make it usable by the robot_description.
   * **ur_robot_driver**: The actual driver package.
@@ -130,8 +127,8 @@ $ mkdir -p catkin_ws/src && cd catkin_ws
 # clone the driver
 $ git clone https://github.com/UniversalRobots/Universal_Robots_ROS_Driver.git src/Universal_Robots_ROS_Driver
 
-# clone fork of the description. This is currently necessary, until the changes are merged upstream.
-$ git clone -b calibration_devel https://github.com/fmauch/universal_robot.git src/fmauch_universal_robot
+# clone the description. Currently, it is necessary to use the melodic-devel branch.
+$ git clone -b melodic-devel https://github.com/ros-industrial/universal_robot.git src/universal_robot
 
 # install dependencies
 $ sudo apt update -qq
@@ -155,7 +152,7 @@ $ source /opt/ros/<your_ros_version>/setup.bash
 $ mkdir -p catkin_ws/src && cd catkin_ws
 $ git clone -b boost https://github.com/UniversalRobots/Universal_Robots_Client_Library.git src/Universal_Robots_Client_Library
 $ git clone https://github.com/UniversalRobots/Universal_Robots_ROS_Driver.git src/Universal_Robots_ROS_Driver
-$ git clone -b calibration_devel https://github.com/fmauch/universal_robot.git src/fmauch_universal_robot
+$ git clone -b melodic-devel https://github.com/ros-industrial/universal_robot.git src/universal_robot
 $ sudo apt update -qq
 $ rosdep update
 $ rosdep install --from-paths src --ignore-src -y
@@ -166,10 +163,7 @@ $ source devel_isolated/setup.bash
 ## Setting up a UR robot for ur_robot_driver
 ### Prepare the robot
 For using the *ur_robot_driver* with a real robot you need to install the
-**externalcontrol-1.0.4.urcap** which can be found inside the **resources** folder of this driver.
-
-**Note**: For installing this URCap a minimal PolyScope version of 3.7 or 5.1 (in case of e-Series) is
-necessary.
+**externalcontrol-x.x.x.urcap** which can be found [here](https://github.com/UniversalRobots/Universal_Robots_ExternalControl_URCap/releases).
 
 For installing the necessary URCap and creating a program, please see the individual tutorials on
 how to [setup a CB3 robot](ur_robot_driver/doc/install_urcap_cb3.md) or how to [setup an e-Series
