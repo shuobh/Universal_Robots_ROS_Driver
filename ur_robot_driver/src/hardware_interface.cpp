@@ -480,13 +480,16 @@ bool HardwareInterface::init(ros::NodeHandle& root_nh, ros::NodeHandle& robot_hw
       "set_freedrive", [&](std_srvs::SetBool::Request& req, std_srvs::SetBool::Response& resp) {
         if(req.data) {
           resp.success = ur_driver_->writeFreedriveControlMessage(urcl::control::FreedriveControlMessage::FREEDRIVE_START);
+          in_freedrive_ = true;
         } else {
           resp.success = ur_driver_->writeFreedriveControlMessage(urcl::control::FreedriveControlMessage::FREEDRIVE_STOP);
+          controller_reset_necessary_ = true;
+          in_freedrive_ = false;
         }
+        ur_driver_->getRTDEWriter().sendStandardDigitalOutput(7, in_freedrive_);
         return true;
       });
-
-
+  ur_driver_->getRTDEWriter().sendStandardDigitalOutput(7, in_freedrive_);
   return true;
 }
 
@@ -718,7 +721,10 @@ void HardwareInterface::write(const ros::Time& time, const ros::Duration& period
        runtime_state_ == static_cast<uint32_t>(rtde::RUNTIME_STATE::PAUSING)) &&
       robot_program_running_ && (!non_blocking_read_ || packet_read_))
   {
-    if (position_controller_running_)
+    if (in_freedrive_) {
+      ur_driver_->writeKeepalive();
+    }
+    else if (position_controller_running_)
     {
       ur_driver_->writeJointCommand(joint_position_command_, urcl::comm::ControlMode::MODE_SERVOJ);
     }

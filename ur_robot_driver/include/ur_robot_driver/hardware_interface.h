@@ -345,6 +345,8 @@ protected:
 
   std::string robot_ip_;
   std::string tf_prefix_;
+
+  bool in_freedrive_ = false;
 };
 
 }  // namespace ur_driver
