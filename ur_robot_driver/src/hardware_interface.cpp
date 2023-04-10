@@ -478,14 +478,24 @@ bool HardwareInterface::init(ros::NodeHandle& root_nh, ros::NodeHandle& robot_hw
   // Enable freedrive through a ROS service
   set_freedrive_srv_ = robot_hw_nh.advertiseService<std_srvs::SetBool::Request, std_srvs::SetBool::Response>(
       "set_freedrive", [&](std_srvs::SetBool::Request& req, std_srvs::SetBool::Response& resp) {
+        int retry = 0;
         if(req.data) {
           resp.success = ur_driver_->writeFreedriveControlMessage(urcl::control::FreedriveControlMessage::FREEDRIVE_START);
+          while(!resp.success && retry < 3) {
+            ros::Duration(0.1).sleep();
+            resp.success = ur_driver_->writeFreedriveControlMessage(urcl::control::FreedriveControlMessage::FREEDRIVE_START);
+            retry++;
+          }
           in_freedrive_ = true;
         } else {
           resp.success = ur_driver_->writeFreedriveControlMessage(urcl::control::FreedriveControlMessage::FREEDRIVE_STOP);
+          while(!resp.success && retry < 3) {
+            ros::Duration(0.1).sleep();
+            resp.success = ur_driver_->writeFreedriveControlMessage(urcl::control::FreedriveControlMessage::FREEDRIVE_STOP);
+            retry++;
+          }
           controller_reset_necessary_ = true;
           in_freedrive_ = false;
-          ros::Duration(0.1).sleep();
         }
         ur_driver_->getRTDEWriter().sendStandardDigitalOutput(7, in_freedrive_);
         return true;
