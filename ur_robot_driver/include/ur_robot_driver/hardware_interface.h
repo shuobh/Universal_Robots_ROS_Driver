@@ -241,6 +241,8 @@ protected:
   ros::ServiceServer set_sharpness_srv_;
   ros::ServiceServer set_freedrive_srv_;
   
+  ros::ServiceServer reset_revolution_counter_srv_;
+
   hardware_interface::JointStateInterface js_interface_;
   scaled_controllers::ScaledPositionJointInterface spj_interface_;
   hardware_interface::PositionJointInterface pj_interface_;

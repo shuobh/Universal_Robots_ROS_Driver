@@ -485,11 +485,23 @@ bool HardwareInterface::init(ros::NodeHandle& root_nh, ros::NodeHandle& robot_hw
           resp.success = ur_driver_->writeFreedriveControlMessage(urcl::control::FreedriveControlMessage::FREEDRIVE_STOP);
           controller_reset_necessary_ = true;
           in_freedrive_ = false;
+          ros::Duration(0.1).sleep();
         }
         ur_driver_->getRTDEWriter().sendStandardDigitalOutput(7, in_freedrive_);
         return true;
       });
   ur_driver_->getRTDEWriter().sendStandardDigitalOutput(7, in_freedrive_);
+
+  // Reset revolution counter through a ROS service
+  reset_revolution_counter_srv_ = robot_hw_nh.advertiseService<ur_msgs::SetPayload::Request, ur_msgs::SetPayload::Response>(
+      "reset_revolution_counter", [&](ur_msgs::SetPayload::Request& req, ur_msgs::SetPayload::Response& resp) {
+        if(in_freedrive_) {
+          resp.success = this->ur_driver_->resetRevolutionCounter(req.mass);
+        } else {
+          resp.success = false;
+        }
+        return true;
+      });
   return true;
 }
 
