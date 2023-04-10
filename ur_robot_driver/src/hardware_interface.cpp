@@ -474,6 +474,14 @@ bool HardwareInterface::init(ros::NodeHandle& root_nh, ros::NodeHandle& robot_hw
         }
         return true;
       });
+
+  // Reset revolution counter through a ROS service
+  reset_revolution_counter_srv_ = robot_hw_nh.advertiseService<ur_msgs::SetPayload::Request, ur_msgs::SetPayload::Response>(
+      "reset_revolution_counter", [&](ur_msgs::SetPayload::Request& req, ur_msgs::SetPayload::Response& resp) {
+        resp.success = this->ur_driver_->resetRevolutionCounter(req.mass);
+        controller_reset_necessary_ = true;
+        return true;
+      });
   return true;
 }
 
