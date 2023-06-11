@@ -240,6 +240,7 @@ protected:
   ros::ServiceServer set_payload_srv_;
   ros::ServiceServer set_sharpness_srv_;
   ros::ServiceServer set_freedrive_srv_;
+  ros::ServiceServer set_forcemode_srv_;
   
   ros::ServiceServer reset_revolution_counter_srv_;
 
@@ -349,6 +350,7 @@ protected:
   std::string tf_prefix_;
 
   bool in_freedrive_ = false;
+  bool in_force_mode_ = false;
 };
 
 }  // namespace ur_driver
