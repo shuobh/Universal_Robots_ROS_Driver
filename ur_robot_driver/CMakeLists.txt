@@ -44,6 +44,7 @@ catkin_package(
     urcl_log_handler
   CATKIN_DEPENDS
     actionlib
+    bluehill
     control_msgs
     controller_manager
     controller_manager_msgs

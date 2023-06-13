@@ -514,15 +514,25 @@ bool HardwareInterface::init(ros::NodeHandle& root_nh, ros::NodeHandle& robot_hw
         }
         return true;
       });
-  return true;
 
   // Enable freedrive through a ROS service
   set_forcemode_srv_ = robot_hw_nh.advertiseService<bluehill::SetForceMove::Request, bluehill::SetForceMove::Response>(
       "set_forcemode", [&](bluehill::SetForceMove::Request& req, bluehill::SetForceMove::Response& resp) {
         int retry = 0;
         if(req.cmd) {
-          urcl::vector6d_t task_frame = {req.task_frame[0], req.task_frame[1], req.task_frame[2],
-                                         req.task_frame[3], req.task_frame[4], req.task_frame[5]}; 
+          double x, y, z;
+          double angle = 2.0 * acos(req.task_frame.orientation.w);
+          double base = sqrt(1.0-req.task_frame.orientation.w*req.task_frame.orientation.w);
+          if(base < 0.001) {
+            x = req.task_frame.orientation.x;
+            y = req.task_frame.orientation.y;
+            z = req.task_frame.orientation.z;
+          } else {
+            x = angle * req.task_frame.orientation.x / base;
+            y = angle * req.task_frame.orientation.y / base;
+            z = angle * req.task_frame.orientation.z / base;
+          }
+          urcl::vector6d_t task_frame = {req.task_frame.position.x, req.task_frame.position.y, req.task_frame.position.z, x, y, z};
           urcl::vector6uint32_t selection_vector = {req.force_move.compliance[0], req.force_move.compliance[1], req.force_move.compliance[2],
                                                     req.force_move.compliance[3], req.force_move.compliance[4], req.force_move.compliance[5]};
           urcl::vector6d_t wrench = {req.force_move.force[0], req.force_move.force[1], req.force_move.force[2],
@@ -530,14 +540,13 @@ bool HardwareInterface::init(ros::NodeHandle& root_nh, ros::NodeHandle& robot_hw
           int32_t force_mode_type = 2;
           urcl::vector6d_t limits = { 0.1, 0.1, 0.1, 0.785, 0.785, 1.57 };
           resp.success = ur_driver_->startForceMode(task_frame, selection_vector, wrench, force_mode_type, limits);
-          in_force_mode_ = true;
         } else {
           resp.success = ur_driver_->endForceMode();
           controller_reset_necessary_ = true;
-          in_force_mode_ = false;
         }
         return true;
       });
+  return true;
 }
 
 template <typename T>
@@ -768,7 +777,7 @@ void HardwareInterface::write(const ros::Time& time, const ros::Duration& period
        runtime_state_ == static_cast<uint32_t>(rtde::RUNTIME_STATE::PAUSING)) &&
       robot_program_running_ && (!non_blocking_read_ || packet_read_))
   {
-    if (in_freedrive_ || in_force_mode_) {
+    if (in_freedrive_) {
       ur_driver_->writeKeepalive();
     }
     else if (position_controller_running_)
