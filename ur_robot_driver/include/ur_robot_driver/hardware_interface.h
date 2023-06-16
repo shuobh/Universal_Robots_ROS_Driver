@@ -350,6 +350,7 @@ protected:
   std::string tf_prefix_;
 
   bool in_freedrive_ = false;
+  bool in_forcemode_ = false;
 };
 
 }  // namespace ur_driver

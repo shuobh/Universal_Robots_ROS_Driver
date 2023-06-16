@@ -538,10 +538,29 @@ bool HardwareInterface::init(ros::NodeHandle& root_nh, ros::NodeHandle& robot_hw
           urcl::vector6d_t wrench = {req.force_move.force[0], req.force_move.force[1], req.force_move.force[2],
                                      req.force_move.force[3], req.force_move.force[4], req.force_move.force[5]};
           int32_t force_mode_type = 2;
-          urcl::vector6d_t limits = { 0.1, 0.1, 0.1, 0.785, 0.785, 1.57 };
+          // For non-compliance directions, this will set max deviation in m and rad
+          urcl::vector6d_t limits = { 0.01, 0.01, 0.01, 0.03, 0.03, 0.03 };
+          for(int i = 0; i < 6; i++) {
+            if(req.force_move.compliance[i]) {
+              // For compliance directions, this will set max speed in m/s and rad/s
+              // If we do not apply active force, then we downscale it by 20%
+              double scale = 1.0;
+              if(req.force_move.force[i] == 0) {
+                scale = 0.2;
+              }
+              if(i < 3) {
+                limits[i] = 0.1 * scale;
+              } else {
+                limits[i] = 0.3 * scale;
+              }
+            }
+          }
           resp.success = ur_driver_->startForceMode(task_frame, selection_vector, wrench, force_mode_type, limits);
+          in_forcemode_ = true;
         } else {
           resp.success = ur_driver_->endForceMode();
+          ros::Duration(0.1).sleep();
+          in_forcemode_ = false;
           controller_reset_necessary_ = true;
         }
         return true;
@@ -777,7 +796,7 @@ void HardwareInterface::write(const ros::Time& time, const ros::Duration& period
        runtime_state_ == static_cast<uint32_t>(rtde::RUNTIME_STATE::PAUSING)) &&
       robot_program_running_ && (!non_blocking_read_ || packet_read_))
   {
-    if (in_freedrive_) {
+    if (in_freedrive_ || in_forcemode_) {
       ur_driver_->writeKeepalive();
     }
     else if (position_controller_running_)
