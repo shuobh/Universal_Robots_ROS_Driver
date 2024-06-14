@@ -35,7 +35,7 @@
   <arg name="ur_hardware_interface_node_required" default="true" doc="Shut down ros environment if ur_hardware_interface-node dies."/>
 
   <!-- Load hardware interface -->
-  <node name="ur_hardware_interface" pkg="ur_robot_driver" type="ur_robot_driver_node" output="screen" launch-prefix="$(arg launch_prefix)" required="$(arg ur_hardware_interface_node_required)">
+  <node name="ur_hardware_interface" pkg="ur_robot_driver" type="ur_robot_driver_node" output="screen" launch-prefix="$(arg launch_prefix)"  respawn="true">
     <param name="robot_ip" type="str" value="$(arg robot_ip)"/>
     <param name="reverse_ip" value="$(arg reverse_ip)"/>
     <param name="reverse_port" type="int" value="$(arg reverse_port)"/>
@@ -61,7 +61,7 @@
   </node>
 
   <!-- Starts socat to bridge the robot's tool communication interface to a local tty device -->
-  <node if="$(arg use_tool_communication)" name="ur_tool_communication_bridge" pkg="ur_robot_driver" type="tool_communication" respawn="false" output="screen">
+  <node if="$(arg use_tool_communication)" name="ur_tool_communication_bridge" pkg="ur_robot_driver" type="tool_communication" respawn="true" output="screen">
     <param name="robot_ip" value="$(arg robot_ip)"/>
     <param name="reverse_ip" value="$(arg reverse_ip)"/>
     <param name="reverse_port" type="int" value="$(arg reverse_port)"/>
@@ -74,14 +74,14 @@
   <rosparam file="$(arg controller_config_file)" command="load"/>
 
   <!-- spawn controller manager -->
-  <node name="ros_control_controller_spawner" pkg="controller_manager" type="spawner" respawn="false"
+  <node name="ros_control_controller_spawner" pkg="controller_manager" type="spawner" respawn="true"
     output="screen" args="$(arg controllers)" />
 
   <!-- load other controller -->
-  <node name="ros_control_stopped_spawner" pkg="controller_manager" type="spawner" respawn="false"
+  <node name="ros_control_stopped_spawner" pkg="controller_manager" type="spawner" respawn="true"
     output="screen" args="--stopped $(arg stopped_controllers)" unless="$(eval arg('stopped_controllers') == '')"/>
 
-  <node name="controller_stopper" pkg="ur_robot_driver" type="controller_stopper_node" respawn="false" output="screen">
+  <node name="controller_stopper" pkg="ur_robot_driver" type="controller_stopper_node" respawn="true" output="screen">
     <remap from="robot_running" to="ur_hardware_interface/robot_program_running"/>
     <rosparam param="consistent_controllers">
        - "joint_state_controller"
@@ -92,7 +92,7 @@
   </node>
 
   <!-- Make sure to start this in the namespace of the hardware interface -->
-  <node ns="ur_hardware_interface" name="ur_robot_state_helper" pkg="ur_robot_driver" type="robot_state_helper" respawn="false" output="screen">
+  <node ns="ur_hardware_interface" name="ur_robot_state_helper" pkg="ur_robot_driver" type="robot_state_helper" respawn="true" output="screen">
   </node>
 
 </launch>
