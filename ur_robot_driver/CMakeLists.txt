@@ -32,6 +32,7 @@ find_package(catkin REQUIRED
     ur_msgs
     pass_through_controllers
     kdl_parser
+    combined_robot_hw
 )
 find_package(Boost REQUIRED)
 find_package(ur_client_library REQUIRED)
@@ -73,7 +74,7 @@ catkin_package(
 add_compile_options(-Wall)
 add_compile_options(-Wextra)
 add_compile_options(-Wno-unused-parameter)
-
+set(CMAKE_CXX_STANDARD 17)
 
 include_directories(
   include
@@ -125,6 +126,17 @@ target_link_libraries(controller_stopper_node
   ${catkin_LIBRARIES}
 )
 
+add_library(ur_with_inspire_hardware_interfaces 
+    src/inspire_hand_hardware_interface.cpp
+    src/hardware_interface.cpp
+)
+target_link_libraries(ur_with_inspire_hardware_interfaces ${catkin_LIBRARIES})
+
+add_executable(combined_hardware_ur_with_inspire
+    src/combined_hardware_ur_with_inspire.cpp
+)
+target_link_libraries(combined_hardware_ur_with_inspire ${catkin_LIBRARIES})
+
 if(CATKIN_ENABLE_TESTING)
   find_package(rostest REQUIRED)
 
@@ -151,5 +163,9 @@ install(DIRECTORY include/${PROJECT_NAME}/
 )
 
 install(FILES hardware_interface_plugin.xml
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
+)
+
+install(FILES combined_hardware_interface_plugin.xml
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
 )

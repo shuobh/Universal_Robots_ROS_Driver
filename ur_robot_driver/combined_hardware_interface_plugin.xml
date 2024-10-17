@@ -1,0 +1,12 @@
+<library path="lib/libur_with_inspire_hardware_interfaces">
+  <class name="ur_driver/HardwareInterface" type="ur_driver::HardwareInterface" base_class_type="hardware_interface::RobotHW">
+    <description>
+      Interface for UR
+    </description>
+  </class>
+  <class name="inspire_hand/HardwareInterface" type="inspire_hand::HardwareInterface" base_class_type="hardware_interface::RobotHW">
+    <description>
+      Interface for Inspire Hand
+    </description>
+  </class>
+</library>

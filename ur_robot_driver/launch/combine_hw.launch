@@ -1,0 +1,20 @@
+<launch>
+    <rosparam file="$(find ur_robot_driver)/config/controllers.yaml" command="load"/>
+    <rosparam file="$(find ur_robot_driver)/config/hardware.yaml" command="load"/>
+
+    <!-- robot model -->
+
+    <rosparam command="load" file="$(find ur_description)/config/ur3e/default_kinematics.yaml" />
+    <include file="$(find ur_description)/launch/load_ur3e_with_inspire.launch">
+      <arg name="kinematics_params" value="$(find ur_description)/config/ur3e/default_kinematics.yaml"/>
+    </include>
+
+    <node name="ur_robot_driver" pkg="ur_robot_driver" type="combined_hardware_ur_with_inspire" output="screen"/>
+    <node name="controller_spawner" pkg="controller_manager" type="spawner" respawn="false" output="screen" ns="/"
+        args="
+             /ur_with_inspire/controller/ur_state
+             /ur_with_inspire/controller/inspire_hand_state
+             /ur_with_inspire/controller/scaled_pos_joint_traj_controller
+              /ur_with_inspire/controller/hand_position_controller 
+    "/>
+</launch>

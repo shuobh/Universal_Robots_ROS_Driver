@@ -1,0 +1,22 @@
+robot_hardware:
+  - ur_hw
+  - inspire_hand_hw
+ur_hw:
+  type: ur_driver/HardwareInterface
+  joints:
+     - shoulder_pan_joint
+     - shoulder_lift_joint
+     - elbow_joint
+     - wrist_1_joint
+     - wrist_2_joint
+     - wrist_3_joint
+
+inspire_hand_hw:
+  type: inspire_hand/HardwareInterface
+  joints:
+   - pinky_proximal_joint
+   - ring_proximal_joint
+   - middle_proximal_joint
+   - index_proximal_joint
+   - thumb_proximal_pitch_joint
+   - thumb_proximal_yaw_joint
