@@ -4,7 +4,7 @@ hardware_control_loop:
 
 # Settings for ros_control hardware interface
 ur_with_inspire_hardware_interface:
-   joints: &robot_joints
+   joints:
      - shoulder_pan_joint
      - shoulder_lift_joint
      - elbow_joint
@@ -37,7 +37,13 @@ speed_scaling_state_controller:
 # For detailed explanations of parameter see http://wiki.ros.org/joint_trajectory_controller
 scaled_pos_joint_traj_controller:
    type: position_controllers/ScaledJointTrajectoryController
-   joints: *robot_joints
+   joints: 
+     - shoulder_pan_joint
+     - shoulder_lift_joint
+     - elbow_joint
+     - wrist_1_joint
+     - wrist_2_joint
+     - wrist_3_joint
    constraints:
       goal_time: 0.6
       stopped_velocity_tolerance: 0.05
@@ -53,7 +59,13 @@ scaled_pos_joint_traj_controller:
 
 pos_joint_traj_controller:
    type: position_controllers/JointTrajectoryController
-   joints: *robot_joints
+   joints: 
+     - shoulder_pan_joint
+     - shoulder_lift_joint
+     - elbow_joint
+     - wrist_1_joint
+     - wrist_2_joint
+     - wrist_3_joint
    constraints:
       goal_time: 0.6
       stopped_velocity_tolerance: 0.05
@@ -69,7 +81,13 @@ pos_joint_traj_controller:
 
 scaled_vel_joint_traj_controller:
    type: velocity_controllers/ScaledJointTrajectoryController
-   joints: *robot_joints
+   joints: 
+     - shoulder_pan_joint
+     - shoulder_lift_joint
+     - elbow_joint
+     - wrist_1_joint
+     - wrist_2_joint
+     - wrist_3_joint
    constraints:
       goal_time: 0.6
       stopped_velocity_tolerance: 0.05
@@ -101,7 +119,13 @@ scaled_vel_joint_traj_controller:
 
 vel_joint_traj_controller:
    type: velocity_controllers/JointTrajectoryController
-   joints: *robot_joints
+   joints: 
+     - shoulder_pan_joint
+     - shoulder_lift_joint
+     - elbow_joint
+     - wrist_1_joint
+     - wrist_2_joint
+     - wrist_3_joint
    constraints:
       goal_time: 0.6
       stopped_velocity_tolerance: 0.05
@@ -134,21 +158,45 @@ vel_joint_traj_controller:
 # Pass an array of joint velocities directly to the joints
 joint_group_vel_controller:
    type: velocity_controllers/JointGroupVelocityController
-   joints: *robot_joints
+   joints: 
+     - shoulder_pan_joint
+     - shoulder_lift_joint
+     - elbow_joint
+     - wrist_1_joint
+     - wrist_2_joint
+     - wrist_3_joint
 
 forward_joint_traj_controller:
     type: "pass_through_controllers/JointTrajectoryController"
-    joints: *robot_joints
+    joints: 
+     - shoulder_pan_joint
+     - shoulder_lift_joint
+     - elbow_joint
+     - wrist_1_joint
+     - wrist_2_joint
+     - wrist_3_joint
 
 forward_cartesian_traj_controller:
     type: "pass_through_controllers/CartesianTrajectoryController"
-    joints: *robot_joints
+    joints: 
+     - shoulder_pan_joint
+     - shoulder_lift_joint
+     - elbow_joint
+     - wrist_1_joint
+     - wrist_2_joint
+     - wrist_3_joint
 
 twist_controller:
   type: "ros_controllers_cartesian/TwistController"
   frame_id: "tool0_controller"
   publish_rate: *loop_hz
-  joints: *robot_joints
+  joints: 
+     - shoulder_pan_joint
+     - shoulder_lift_joint
+     - elbow_joint
+     - wrist_1_joint
+     - wrist_2_joint
+     - wrist_3_joint
 
 pose_based_cartesian_traj_controller:
     type: pose_controllers/CartesianTrajectoryController
@@ -156,7 +204,13 @@ pose_based_cartesian_traj_controller:
     # UR driver convention
     base: base
     tip: tool0_controller
-    joints: *robot_joints
+    joints: 
+     - shoulder_pan_joint
+     - shoulder_lift_joint
+     - elbow_joint
+     - wrist_1_joint
+     - wrist_2_joint
+     - wrist_3_joint
 
 joint_based_cartesian_traj_controller:
     type: position_controllers/CartesianTrajectoryController
@@ -164,7 +218,13 @@ joint_based_cartesian_traj_controller:
     # UR driver convention
     base: base
     tip: tool0
-    joints: *robot_joints
+    joints: 
+     - shoulder_pan_joint
+     - shoulder_lift_joint
+     - elbow_joint
+     - wrist_1_joint
+     - wrist_2_joint
+     - wrist_3_joint
 
 robot_status_controller:
    type: industrial_robot_status_controller/IndustrialRobotStatusController
