@@ -36,6 +36,7 @@
   <depend>roscpp</depend>
   <depend>scaled_joint_trajectory_controller</depend>
   <depend>sensor_msgs</depend>
+  <depend>serial</depend>
   <depend>speed_scaling_interface</depend>
   <depend>speed_scaling_state_controller</depend>
   <depend>std_srvs</depend>

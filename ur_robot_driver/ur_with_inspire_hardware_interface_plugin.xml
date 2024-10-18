@@ -1,0 +1,7 @@
+<library path="lib/libur_with_inspire_robot_driver_plugin">
+  <class name="ur_driver/URwInspireHardwareInterface" type="ur_driver::URwInspireHardwareInterface" base_class_type="hardware_interface::RobotHW">
+    <description>
+      Universal Robots with Inspire ROS Driver as plugin
+    </description>
+  </class>
+</library>

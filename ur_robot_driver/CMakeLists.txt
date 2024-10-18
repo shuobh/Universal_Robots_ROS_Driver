@@ -21,6 +21,7 @@ find_package(catkin REQUIRED
     roscpp
     scaled_joint_trajectory_controller
     sensor_msgs
+    serial
     speed_scaling_interface
     speed_scaling_state_controller
     std_srvs
@@ -41,6 +42,7 @@ catkin_package(
     include
   LIBRARIES
     ur_robot_driver_plugin
+    ur_with_inspire_robot_driver_plugin
     urcl_log_handler
   CATKIN_DEPENDS
     actionlib
@@ -56,6 +58,7 @@ catkin_package(
     roscpp
     scaled_joint_trajectory_controller
     sensor_msgs
+    serial
     speed_scaling_interface
     speed_scaling_state_controller
     std_srvs
@@ -88,6 +91,13 @@ add_library(ur_robot_driver_plugin
 target_link_libraries(ur_robot_driver_plugin ur_client_library::urcl ${catkin_LIBRARIES})
 add_dependencies(ur_robot_driver_plugin ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
+add_library(ur_with_inspire_robot_driver_plugin
+  src/dashboard_client_ros.cpp
+  src/ur_with_inspire_hardware_interface.cpp
+)
+target_link_libraries(ur_with_inspire_robot_driver_plugin ur_client_library::urcl ${catkin_LIBRARIES})
+add_dependencies(ur_with_inspire_robot_driver_plugin ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+
 add_library(urcl_log_handler
   src/urcl_log_handler.cpp
 )
@@ -100,6 +110,15 @@ add_executable(ur_robot_driver_node
 )
 target_link_libraries(ur_robot_driver_node ${catkin_LIBRARIES} ur_client_library::urcl urcl_log_handler)
 add_dependencies(ur_robot_driver_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+
+add_executable(ur_with_inspire_robot_driver_node
+  src/dashboard_client_ros.cpp
+  src/ur_with_inspire_hardware_interface.cpp
+  src/hand_control_lib.cpp
+  src/ur_with_inspire_hardware_interface_node.cpp
+)
+target_link_libraries(ur_with_inspire_robot_driver_node ${catkin_LIBRARIES} ur_client_library::urcl urcl_log_handler)
+add_dependencies(ur_with_inspire_robot_driver_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 add_executable(dashboard_client
   src/dashboard_client_ros.cpp
@@ -132,7 +151,7 @@ if(CATKIN_ENABLE_TESTING)
 endif()
 
 
-install(TARGETS ur_robot_driver_plugin urcl_log_handler ur_robot_driver_node robot_state_helper dashboard_client controller_stopper_node
+install(TARGETS ur_robot_driver_plugin urcl_log_handler ur_robot_driver_node robot_state_helper dashboard_client controller_stopper_node ur_with_inspire_robot_driver_node ur_with_inspire_robot_driver_plugin
   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
