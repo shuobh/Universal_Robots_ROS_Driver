@@ -63,10 +63,10 @@
     <param name="tool_tx_idle_chars" value="$(arg tool_tx_idle_chars)"/>
     <param name="servoj_gain" value="$(arg servoj_gain)"/>
     <param name="servoj_lookahead_time" value="$(arg servoj_lookahead_time)"/>
-    <param name = "hand_id" value="$(arg id)" />
-    <param name = "portname" value="$(arg port)" />
-    <param name = "baudrate" value="$(arg baud)" />
-    <param name = "test_flags" value="$(arg test_flag)" />
+    <param name="hand_id" value="$(arg id)" />
+    <param name="portname" value="$(arg port)" />
+    <param name="baudrate" value="$(arg baud)" />
+    <param name="test_flags" value="$(arg test_flag)" />
   </node>
 
   <!-- Starts socat to bridge the robot's tool communication interface to a local tty device -->

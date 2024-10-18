@@ -62,9 +62,9 @@
     <arg name="tool_device_name" value="$(arg tool_device_name)"/>
     <arg name="tool_tcp_port" value="$(arg tool_tcp_port)"/>
     <arg name="ur_hardware_interface_node_required" value="$(arg ur_hardware_interface_node_required)"/>
-    <arg name = "hand_id" value="$(arg id)" />
-    <arg name = "portname" value="$(arg port)" />
-    <arg name = "baudrate" value="$(arg baud)" />
-    <arg name = "test_flags" value="$(arg test_flag)" />
+    <arg name ="id" value="$(arg id)" />
+    <arg name ="port" value="$(arg port)" />
+    <arg name ="baud" value="$(arg baud)" />
+    <arg name ="test_flags" value="$(arg test_flag)" />
   </include>
 </launch>
