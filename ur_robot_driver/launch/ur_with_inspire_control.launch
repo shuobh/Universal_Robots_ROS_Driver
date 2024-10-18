@@ -34,6 +34,11 @@
   <arg name="servoj_lookahead_time" default="0.03" doc="Specify lookahead time for servoing to position in joint space. A longer lookahead time can smooth the trajectory."/>
   <arg name="ur_hardware_interface_node_required" default="true" doc="Shut down ros environment if ur_hardware_interface-node dies."/>
 
+  <arg name="id" default= "1" />
+  <arg name="port" default= "/dev/ttyUSB0" />
+  <arg name="baud" default= "115200" />
+  <arg name="test_flag" default= "0" />
+
   <!-- Load hardware interface -->
   <node name="ur_with_inspire_hardware_interface" pkg="ur_robot_driver" type="ur_robot_driver_node" output="screen" launch-prefix="$(arg launch_prefix)"  respawn="true">
     <param name="robot_ip" type="str" value="$(arg robot_ip)"/>
