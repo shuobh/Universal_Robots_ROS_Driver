@@ -813,7 +813,7 @@ void URwInspireHardwareInterface::read(const ros::Time& time, const ros::Duratio
       if(error_counter++ > 50)
       {
         ROS_ERROR("Restarting robot driver due to connection issue!");
-        std::system("rosnode kill /robot_state_publisher & rosnode kill /ros_control_controller_spawner & rosnode kill /ros_control_stopped_spawner & rosnode kill /controller_stopper & rosnode kill /ur_hardware_interface/ur_robot_state_helper & rosnode kill /ur_hardware_interface");
+        std::system("rosnode kill /robot_state_publisher & rosnode kill /ros_control_controller_spawner & rosnode kill /ros_control_stopped_spawner & rosnode kill /controller_stopper & rosnode kill /ur_with_inspire_hardware_interface/ur_robot_state_helper & rosnode kill /ur_with_inspire_hardware_interface");
       }
     }
   }

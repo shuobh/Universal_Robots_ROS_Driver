@@ -91,7 +91,7 @@
     output="screen" args="--stopped $(arg stopped_controllers)" unless="$(eval arg('stopped_controllers') == '')"/>
 
   <node name="controller_stopper" pkg="ur_robot_driver" type="controller_stopper_node" respawn="true" output="screen">
-    <remap from="robot_running" to="ur_hardware_interface/robot_program_running"/>
+    <remap from="robot_running" to="ur_with_inspire_hardware_interface/robot_program_running"/>
     <rosparam param="consistent_controllers">
        - "joint_state_controller"
        - "speed_scaling_state_controller"
@@ -101,7 +101,7 @@
   </node>
 
   <!-- Make sure to start this in the namespace of the hardware interface -->
-  <node ns="ur_hardware_interface" name="ur_robot_state_helper" pkg="ur_robot_driver" type="robot_state_helper" respawn="true" output="screen">
+  <node ns="ur_with_inspire_hardware_interface" name="ur_robot_state_helper" pkg="ur_robot_driver" type="robot_state_helper" respawn="true" output="screen">
   </node>
 
 </launch>
