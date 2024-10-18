@@ -147,8 +147,6 @@ public:
     double setpos_[6];
     double setangle_[6];
     double setforce_[6];
-    std::vector<std::string> joint_names_;
-    //sensor_msgs::JointState hand_joint_state_;
 
     //Serial variables
     serial::Serial *com_port_;
