@@ -40,7 +40,7 @@
   <arg name="test_flag" default= "0" />
 
   <!-- Load hardware interface -->
-  <node name="ur_with_inspire_hardware_interface" pkg="ur_robot_driver" type="ur_robot_driver_node" output="screen" launch-prefix="$(arg launch_prefix)"  respawn="true">
+  <node name="ur_with_inspire_hardware_interface" pkg="ur_with_inspire_robot_driver" type="ur_robot_driver_node" output="screen" launch-prefix="$(arg launch_prefix)"  respawn="true">
     <param name="robot_ip" type="str" value="$(arg robot_ip)"/>
     <param name="reverse_ip" value="$(arg reverse_ip)"/>
     <param name="reverse_port" type="int" value="$(arg reverse_port)"/>
