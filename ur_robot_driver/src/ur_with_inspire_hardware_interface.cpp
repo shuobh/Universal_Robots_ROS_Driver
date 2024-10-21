@@ -336,7 +336,7 @@ bool URwInspireHardwareInterface::init(ros::NodeHandle& root_nh, ros::NodeHandle
   // initialize the inspire hand
   inspire_hand_.set_nh(&root_nh);
 
-  hand_control_thread_ = std::thread(handCommunicationThread, std::ref(inspire_hand_), std::ref(in_freedrive_));
+  hand_control_thread_ = std::thread(handCommunicationThread, std::ref(inspire_hand_), std::ref(in_freedrive_), std::ref(power_open_), std::ref(power_close_));
 
 
   // Names of the joints. Usually, this is given in the controller config file.
@@ -1248,13 +1248,9 @@ bool URwInspireHardwareInterface::setIO(ur_msgs::SetIORequest& req, ur_msgs::Set
     // Reserve for gripper control
     if(req.pin == 3) {
       if(req.state) {
-        for(int i = 0; i < 5; i++) {
-            inspire_hand_.setangle_[i] = inspire_hand::angle_upper_limit[i];
-        }
+          power_open_ = true;
       } else {
-        for(int i = 0; i < 5; i++) {
-            inspire_hand_.setangle_[i] = inspire_hand::angle_lower_limit[i];
-        }
+          power_close_ = true;
       }
     }
     if (req.pin <= 7)
@@ -1510,7 +1506,7 @@ void URwInspireHardwareInterface::passthroughTrajectoryDoneCb(urcl::control::Tra
   }
 }
 
-void URwInspireHardwareInterface::handCommunicationThread(inspire_hand::hand_serial& inspire_hand, bool& in_freedrive) {
+void URwInspireHardwareInterface::handCommunicationThread(inspire_hand::hand_serial& inspire_hand, bool& in_freedrive, bool& power_open, bool& power_close) {
   while (ros::ok()) {
     inspire_hand.get_actual_angle();
     inspire_hand.get_actual_force();
@@ -1530,6 +1526,18 @@ void URwInspireHardwareInterface::handCommunicationThread(inspire_hand::hand_ser
           }
         }
       }
+    }
+    if(power_open) {
+      for(int i = 0; i < 5; i++) {
+        inspire_hand.setangle_[i] = inspire_hand::angle_upper_limit[i];
+      }
+      power_open = false;
+    }
+    if(power_close) {
+      for(int i = 0; i < 5; i++) {
+        inspire_hand.setangle_[i] = inspire_hand::angle_lower_limit[i];
+      }
+      power_close = false;
     }
     inspire_hand.set_angle(inspire_hand.setangle_);
     std::this_thread::sleep_for(std::chrono::milliseconds(1));

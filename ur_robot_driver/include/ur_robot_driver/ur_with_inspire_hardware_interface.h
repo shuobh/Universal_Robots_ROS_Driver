@@ -237,7 +237,7 @@ protected:
 
   void passthroughTrajectoryDoneCb(urcl::control::TrajectoryResult result);
 
-  static void handCommunicationThread(inspire_hand::hand_serial& inspire_hand, bool& in_freedrive);
+  static void handCommunicationThread(inspire_hand::hand_serial& inspire_hand, bool& in_freedrive, bool& power_open, bool& power_close);
 
   ros::ServiceServer deactivate_srv_;
   ros::ServiceServer tare_sensor_srv_;
@@ -354,6 +354,8 @@ protected:
   std::string tf_prefix_;
 
   bool in_freedrive_ = false;
+  bool power_open_ = false;
+  bool power_close_ = false;
   bool in_forcemode_ = false;
 
   inspire_hand::hand_serial inspire_hand_;
