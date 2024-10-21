@@ -96,7 +96,7 @@ public:
    * \brief Creates a new HardwareInterface object.
    */
   URwInspireHardwareInterface();
-  virtual ~URwInspireHardwareInterface() = default;
+  virtual ~URwInspireHardwareInterface() {hand_control_thread_.join();};
   /*!
    * \brief Handles the setup functionality for the ROS interface. This includes parsing ROS
    * parameters, creating interfaces, starting the main driver and advertising ROS services.
@@ -237,6 +237,8 @@ protected:
 
   void passthroughTrajectoryDoneCb(urcl::control::TrajectoryResult result);
 
+  static void handCommunicationThread(inspire_hand::hand_serial& inspire_hand);
+
   ros::ServiceServer deactivate_srv_;
   ros::ServiceServer tare_sensor_srv_;
   ros::ServiceServer set_payload_srv_;
@@ -355,6 +357,7 @@ protected:
   bool in_forcemode_ = false;
 
   inspire_hand::hand_serial inspire_hand_;
+  std::thread hand_control_thread_;
 
 };
 

@@ -336,6 +336,8 @@ bool URwInspireHardwareInterface::init(ros::NodeHandle& root_nh, ros::NodeHandle
   // initialize the inspire hand
   inspire_hand_.set_nh(&root_nh);
 
+  hand_control_thread_ = std::thread(handCommunicationThread, std::ref(inspire_hand_));
+
 
   // Names of the joints. Usually, this is given in the controller config file.
   if (!robot_hw_nh.getParam("joints", joint_names_))
@@ -817,8 +819,6 @@ void URwInspireHardwareInterface::read(const ros::Time& time, const ros::Duratio
       }
     }
   }
-  inspire_hand_.get_actual_angle();
-  inspire_hand_.get_actual_force();
 }
 
 void URwInspireHardwareInterface::write(const ros::Time& time, const ros::Duration& period)
@@ -889,7 +889,6 @@ void URwInspireHardwareInterface::write(const ros::Time& time, const ros::Durati
       ur_driver_->writeKeepalive();
     }
     packet_read_ = false;
-    inspire_hand_.set_angle(inspire_hand_.setangle_);
   }
 }
 
@@ -1510,6 +1509,16 @@ void URwInspireHardwareInterface::passthroughTrajectoryDoneCb(urcl::control::Tra
   else
   {
     ROS_ERROR_STREAM("Received forwarded trajectory result with no forwarding controller running.");
+  }
+}
+
+void URwInspireHardwareInterface::handCommunicationThread(inspire_hand::hand_serial& inspire_hand) {
+  while (ros::ok()) {
+    inspire_hand.get_actual_angle();
+    inspire_hand.get_actual_force();
+    std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    inspire_hand.set_angle(inspire_hand.setangle_);
+    std::this_thread::sleep_for(std::chrono::milliseconds(1));
   }
 }
 }  // namespace ur_driver
