@@ -237,7 +237,7 @@ protected:
 
   void passthroughTrajectoryDoneCb(urcl::control::TrajectoryResult result);
 
-  static void handCommunicationThread(inspire_hand::hand_serial& inspire_hand);
+  static void handCommunicationThread(inspire_hand::hand_serial& inspire_hand, bool& in_freedrive);
 
   ros::ServiceServer deactivate_srv_;
   ros::ServiceServer tare_sensor_srv_;

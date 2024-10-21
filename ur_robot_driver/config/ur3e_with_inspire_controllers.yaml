@@ -40,13 +40,19 @@ scaled_pos_joint_traj_controller:
    joints: *robot_joints
    constraints:
       goal_time: 0.6
-      stopped_velocity_tolerance: 0.05
+      stopped_velocity_tolerance: 0.0
       shoulder_pan_joint: {trajectory: 1.0, goal: 0.1}
       shoulder_lift_joint: {trajectory: 1.0, goal: 0.1}
       elbow_joint: {trajectory: 1.0, goal: 0.1}
       wrist_1_joint: {trajectory: 1.0, goal: 0.1}
       wrist_2_joint: {trajectory: 1.0, goal: 0.1}
       wrist_3_joint: {trajectory: 1.0, goal: 0.1}
+      pinky_proximal_joint: {trajectory: 1.0, goal: 0.2}
+      ring_proximal_joint: {trajectory: 1.0, goal: 0.2}
+      middle_proximal_joint: {trajectory: 1.0, goal: 0.2}
+      index_proximal_joint: {trajectory: 1.0, goal: 0.2}
+      thumb_proximal_pitch_joint: {trajectory: 1.0, goal: 0.2}
+      thumb_proximal_yaw_joint: {trajectory: 1.0, goal: 0.2}
    stop_trajectory_duration: 0.5
    state_publish_rate: *loop_hz
    action_monitor_rate: 20
