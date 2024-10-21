@@ -1245,6 +1245,18 @@ bool URwInspireHardwareInterface::setIO(ur_msgs::SetIORequest& req, ur_msgs::Set
 {
   if (req.fun == req.FUN_SET_DIGITAL_OUT && ur_driver_ != nullptr)
   {
+    // Reserve for gripper control
+    if(req.pin == 6) {
+      if(req.state) {
+        for(int i = 0; i < 5; i++) {
+            inspire_hand_.setangle_[i] = inspire_hand::angle_upper_limit[i];
+        }
+      } else {
+        for(int i = 0; i < 5; i++) {
+            inspire_hand_.setangle_[i] = inspire_hand::angle_lower_limit[i];
+        }
+      }
+    }
     if (req.pin <= 7)
     {
       res.success = ur_driver_->getRTDEWriter().sendStandardDigitalOutput(req.pin, req.state);
