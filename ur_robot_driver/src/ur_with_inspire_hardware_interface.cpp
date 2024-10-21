@@ -1529,13 +1529,13 @@ void URwInspireHardwareInterface::handCommunicationThread(inspire_hand::hand_ser
     }
     if(power_open) {
       for(int i = 0; i < 5; i++) {
-        inspire_hand.setangle_[i] = inspire_hand::angle_upper_limit[i];
+        inspire_hand.setangle_[i] = inspire_hand::angle_lower_limit[i];
       }
       power_open = false;
     }
     if(power_close) {
       for(int i = 0; i < 5; i++) {
-        inspire_hand.setangle_[i] = inspire_hand::angle_lower_limit[i];
+        inspire_hand.setangle_[i] = inspire_hand::angle_upper_limit[i];
       }
       power_close = false;
     }
