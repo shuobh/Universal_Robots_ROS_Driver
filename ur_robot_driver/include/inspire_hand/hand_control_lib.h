@@ -139,6 +139,7 @@ public:
     uint8_t hand_state_;
     double curpos_[6];
     double curangle_[6];
+    double curspeed_[6] = {0.0};
     double curforce_[6];
     double current_[6];
     double errorvalue_[6];

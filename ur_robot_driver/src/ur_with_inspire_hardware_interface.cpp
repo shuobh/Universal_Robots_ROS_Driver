@@ -367,7 +367,7 @@ bool URwInspireHardwareInterface::init(ros::NodeHandle& root_nh, ros::NodeHandle
       svj_interface_.registerHandle(scaled_controllers::ScaledJointHandle(
           js_interface_.getHandle(joint_names_[i]), &joint_velocity_command_[i], &speed_scaling_combined_));
     } else {
-      js_interface_.registerHandle(hardware_interface::JointStateHandle(joint_names_[i], &inspire_hand_.curangle_[i-6], &inspire_hand_.curangle_[i-6], &inspire_hand_.curforce_[i-6]));
+      js_interface_.registerHandle(hardware_interface::JointStateHandle(joint_names_[i], &inspire_hand_.curangle_[i-6], &inspire_hand_.curspeed_[i-6], &inspire_hand_.curforce_[i-6]));
       // Create joint position control interface
       pj_interface_.registerHandle(
           hardware_interface::JointHandle(js_interface_.getHandle(joint_names_[i]), &inspire_hand_.setangle_[i-6]));
