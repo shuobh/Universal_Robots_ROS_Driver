@@ -47,12 +47,12 @@ scaled_pos_joint_traj_controller:
       wrist_1_joint: {trajectory: 1.0, goal: 0.1}
       wrist_2_joint: {trajectory: 1.0, goal: 0.1}
       wrist_3_joint: {trajectory: 1.0, goal: 0.1}
-      pinky_proximal_joint: {trajectory: 1.0, goal: 0.2}
-      ring_proximal_joint: {trajectory: 1.0, goal: 0.2}
-      middle_proximal_joint: {trajectory: 1.0, goal: 0.2}
-      index_proximal_joint: {trajectory: 1.0, goal: 0.2}
-      thumb_proximal_pitch_joint: {trajectory: 1.0, goal: 0.2}
-      thumb_proximal_yaw_joint: {trajectory: 1.0, goal: 0.2}
+      pinky_proximal_joint: {trajectory: 1.0, goal: 1.0}
+      ring_proximal_joint: {trajectory: 1.0, goal: 1.0}
+      middle_proximal_joint: {trajectory: 1.0, goal: 1.0}
+      index_proximal_joint: {trajectory: 1.0, goal: 1.0}
+      thumb_proximal_pitch_joint: {trajectory: 1.0, goal: 1.0}
+      thumb_proximal_yaw_joint: {trajectory: 1.0, goal: 1.0}
    stop_trajectory_duration: 0.5
    state_publish_rate: *loop_hz
    action_monitor_rate: 20
