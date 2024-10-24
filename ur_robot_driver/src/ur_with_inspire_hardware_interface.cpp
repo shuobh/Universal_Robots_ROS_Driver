@@ -40,6 +40,7 @@
 #include <stdexcept>
 
 #include <bluehill/SetForceMove.h>
+#include <bluehill/SetFloat.h>
 
 using industrial_robot_status_interface::RobotMode;
 using industrial_robot_status_interface::TriState;
@@ -336,7 +337,7 @@ bool URwInspireHardwareInterface::init(ros::NodeHandle& root_nh, ros::NodeHandle
   // initialize the inspire hand
   inspire_hand_.set_nh(&root_nh);
 
-  hand_control_thread_ = std::thread(handCommunicationThread, std::ref(inspire_hand_), std::ref(in_freedrive_), std::ref(power_open_), std::ref(power_close_));
+  hand_control_thread_ = std::thread(handCommunicationThread, std::ref(inspire_hand_), std::ref(hand_in_freedrive_), std::ref(power_open_), std::ref(power_close_));
 
 
   // Names of the joints. Usually, this is given in the controller config file.
@@ -498,10 +499,10 @@ bool URwInspireHardwareInterface::init(ros::NodeHandle& root_nh, ros::NodeHandle
       });
 
   // Enable freedrive through a ROS service
-  set_freedrive_srv_ = robot_hw_nh.advertiseService<std_srvs::SetBool::Request, std_srvs::SetBool::Response>(
-      "set_freedrive", [&](std_srvs::SetBool::Request& req, std_srvs::SetBool::Response& resp) {
+  set_freedrive_srv_ = robot_hw_nh.advertiseService<bluehill::SetFloat::Request, bluehill::SetFloat::Response>(
+      "set_freedrive", [&](bluehill::SetFloat::Request& req, bluehill::SetFloat::Response& resp) {
         int retry = 0;
-        if(req.data) {
+        if(req.value > 0) {
           resp.success = ur_driver_->writeFreedriveControlMessage(urcl::control::FreedriveControlMessage::FREEDRIVE_START);
           while(!resp.success && retry < 3) {
             ros::Duration(0.1).sleep();
@@ -509,6 +510,7 @@ bool URwInspireHardwareInterface::init(ros::NodeHandle& root_nh, ros::NodeHandle
             retry++;
           }
           in_freedrive_ = true;
+          hand_in_freedrive_ = req.value == 1 ? false : true;
         } else {
           resp.success = ur_driver_->writeFreedriveControlMessage(urcl::control::FreedriveControlMessage::FREEDRIVE_STOP);
           while(!resp.success && retry < 3) {
@@ -518,6 +520,7 @@ bool URwInspireHardwareInterface::init(ros::NodeHandle& root_nh, ros::NodeHandle
           }
           controller_reset_necessary_ = true;
           in_freedrive_ = false;
+          hand_in_freedrive_ = false;
         }
         ur_driver_->getRTDEWriter().sendStandardDigitalOutput(7, in_freedrive_);
         return true;
@@ -1528,12 +1531,14 @@ void URwInspireHardwareInterface::handCommunicationThread(inspire_hand::hand_ser
       }
     }
     if(power_open) {
+      inspire_hand.get_set_angle();
       for(int i = 0; i < 5; i++) {
         inspire_hand.setangle_[i] = inspire_hand::angle_lower_limit[i];
       }
       power_open = false;
     }
     if(power_close) {
+      inspire_hand.get_set_angle();
       for(int i = 0; i < 5; i++) {
         inspire_hand.setangle_[i] = inspire_hand::angle_upper_limit[i];
       }

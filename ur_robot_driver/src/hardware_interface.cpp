@@ -40,6 +40,7 @@
 #include <stdexcept>
 
 #include <bluehill/SetForceMove.h>
+#include <bluehill/SetFloat.h>
 
 using industrial_robot_status_interface::RobotMode;
 using industrial_robot_status_interface::TriState;
@@ -480,10 +481,10 @@ bool HardwareInterface::init(ros::NodeHandle& root_nh, ros::NodeHandle& robot_hw
       });
 
   // Enable freedrive through a ROS service
-  set_freedrive_srv_ = robot_hw_nh.advertiseService<std_srvs::SetBool::Request, std_srvs::SetBool::Response>(
-      "set_freedrive", [&](std_srvs::SetBool::Request& req, std_srvs::SetBool::Response& resp) {
+  set_freedrive_srv_ = robot_hw_nh.advertiseService<bluehill::SetFloat::Request, bluehill::SetFloat::Response>(
+      "set_freedrive", [&](bluehill::SetFloat::Request& req, bluehill::SetFloat::Response& resp) {
         int retry = 0;
-        if(req.data) {
+        if(req.value) {
           resp.success = ur_driver_->writeFreedriveControlMessage(urcl::control::FreedriveControlMessage::FREEDRIVE_START);
           while(!resp.success && retry < 3) {
             ros::Duration(0.1).sleep();

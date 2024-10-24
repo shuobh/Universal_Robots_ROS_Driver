@@ -354,6 +354,7 @@ protected:
   std::string tf_prefix_;
 
   bool in_freedrive_ = false;
+  bool hand_in_freedrive_ = false;
   bool power_open_ = false;
   bool power_close_ = false;
   bool in_forcemode_ = false;
