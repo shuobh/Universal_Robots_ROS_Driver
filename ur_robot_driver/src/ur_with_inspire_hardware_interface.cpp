@@ -567,6 +567,8 @@ bool URwInspireHardwareInterface::init(ros::NodeHandle& root_nh, ros::NodeHandle
               double scale = 1.0;
               if(req.force_move.force[i] == 0) {
                 scale = 0.2;
+              } else {
+                scale = (10.0 - std::min(10.0, std::fabs(req.force_move.force[i]))) / 10.0 + 1.0;
               }
               if(i < 3) {
                 limits[i] = 0.1 * scale;
