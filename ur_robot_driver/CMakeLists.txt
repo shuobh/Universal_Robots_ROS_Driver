@@ -144,6 +144,15 @@ target_link_libraries(controller_stopper_node
   ${catkin_LIBRARIES}
 )
 
+add_executable(inspire_hand_calibration
+  src/inspire_hand_force_calibration.cpp
+  src/hand_control_lib.cpp
+)
+add_dependencies(inspire_hand_calibration ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(inspire_hand_calibration
+  ${catkin_LIBRARIES}
+)
+
 if(CATKIN_ENABLE_TESTING)
   find_package(rostest REQUIRED)
 
