@@ -574,7 +574,7 @@ bool URwInspireHardwareInterface::init(ros::NodeHandle& root_nh, ros::NodeHandle
                 scale = (10.0 - std::min(10.0, std::fabs(req.force_move.force[i]))) / 10.0 + 1.0;
               }
               if(i < 3) {
-                limits[i] = 0.1 * scale;
+                limits[i] = 0.3 * scale;
               } else {
                 limits[i] = 0.3 * scale;
               }
@@ -1521,12 +1521,16 @@ void URwInspireHardwareInterface::handCommunicationThread(inspire_hand::hand_ser
       inspire_hand.get_set_angle();
       const std::vector<double> force_ratio_lookup = {0.00147, 0.00147, 0.00147, 0.00147, 0.0006, 0.001308};
       const std::vector<double> force_pos_threshold_lookup = {80, 80, 80, 80, 80, 80};
-      const std::vector<double> force_neg_threshold_lookup = {-40, -40, -40, -40, -20, -80};
+      const std::vector<double> force_neg_threshold_lookup = {-60, -60, -60, -60, -10, -220};
       for(int i = 0; i < 6; i++) {
         if(fabs(inspire_hand.setangle_[i] - inspire_hand.curangle_[i]) < 0.05) {
+          auto force_neg_threshold = force_neg_threshold_lookup[i];
+          if(inspire_hand.curangle_[i] > 0.5) {
+            force_neg_threshold *= 2.0;
+          }
           if(inspire_hand.curforce_[i] > force_pos_threshold_lookup[i]) {
             inspire_hand.setangle_[i] = std::max(inspire_hand.setangle_[i] - force_ratio_lookup[i] * (inspire_hand.curforce_[i] - force_pos_threshold_lookup[i]) / 2.0 , inspire_hand::angle_lower_limit[i]);
-          } else if(inspire_hand.curforce_[i] < force_neg_threshold_lookup[i]) {
+          } else if(inspire_hand.curforce_[i] < force_neg_threshold) {
             inspire_hand.setangle_[i] = std::min(inspire_hand.setangle_[i] - force_ratio_lookup[i] * (inspire_hand.curforce_[i] - force_neg_threshold_lookup[i]), inspire_hand::angle_upper_limit[i]);
           }
         }

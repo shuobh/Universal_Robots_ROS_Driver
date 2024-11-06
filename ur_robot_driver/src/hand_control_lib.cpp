@@ -18,9 +18,9 @@ hand_serial::hand_serial(ros::NodeHandle *nh):
 
 void hand_serial::set_nh(ros::NodeHandle *nh) {
     //Read launch file params
-    nh->getParam("ur_with_inspire_hardware_interface/hand_id", hand_id_);
-    nh->getParam("ur_with_inspire_hardware_interface/portname", port_name_);
-    nh->getParam("ur_with_inspire_hardware_interface/baudrate", baudrate_);
+    nh->param<int>("ur_with_inspire_hardware_interface/hand_id", hand_id_, 1);
+    nh->param<std::string>("ur_with_inspire_hardware_interface/portname", port_name_, "/dev/ttyUSB0");
+    nh->param<int>("ur_with_inspire_hardware_interface/baudrate", baudrate_, 115200);
 
     //Initialize and open serial port
     com_port_ = new serial::Serial(port_name_, (uint32_t)baudrate_, serial::Timeout::simpleTimeout(5));
