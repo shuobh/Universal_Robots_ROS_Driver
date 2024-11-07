@@ -371,13 +371,13 @@ bool URwInspireHardwareInterface::init(ros::NodeHandle& root_nh, ros::NodeHandle
       js_interface_.registerHandle(hardware_interface::JointStateHandle(joint_names_[i], &inspire_hand_.curangle_[i-6], &inspire_hand_.curspeed_[i-6], &inspire_hand_.curforce_[i-6]));
       // Create joint position control interface
       pj_interface_.registerHandle(
-          hardware_interface::JointHandle(js_interface_.getHandle(joint_names_[i]), &inspire_hand_.setangle_[i-6]));
+          hardware_interface::JointHandle(js_interface_.getHandle(joint_names_[i]), &inspire_hand_.setangle_cmd_[i-6]));
       vj_interface_.registerHandle(
-          hardware_interface::JointHandle(js_interface_.getHandle(joint_names_[i]), &inspire_hand_.setangle_[i-6]));
+          hardware_interface::JointHandle(js_interface_.getHandle(joint_names_[i]), &inspire_hand_.setangle_cmd_[i-6]));
       spj_interface_.registerHandle(scaled_controllers::ScaledJointHandle(
-          js_interface_.getHandle(joint_names_[i]), &inspire_hand_.setangle_[i-6], &speed_scaling_combined_));
+          js_interface_.getHandle(joint_names_[i]), &inspire_hand_.setangle_cmd_[i-6], &speed_scaling_combined_));
       svj_interface_.registerHandle(scaled_controllers::ScaledJointHandle(
-          js_interface_.getHandle(joint_names_[i]), &inspire_hand_.setangle_[i-6], &speed_scaling_combined_));    }
+          js_interface_.getHandle(joint_names_[i]), &inspire_hand_.setangle_cmd_[i-6], &speed_scaling_combined_));    }
   }
 
   speedsc_interface_.registerHandle(scaled_controllers::SpeedScalingHandle(speed_scaling_id, &speed_scaling_combined_));
@@ -719,9 +719,9 @@ void URwInspireHardwareInterface::read(const ros::Time& time, const ros::Duratio
         feedback.error.velocities.push_back(std::abs(joint_velocities_[i] - target_joint_velocities_[i]));
       }
       for (size_t i = 0; i < 6; i++) {
-        feedback.desired.positions.push_back(inspire_hand_.setangle_[i]);
+        feedback.desired.positions.push_back(inspire_hand_.setangle_cmd_[i]);
         feedback.actual.positions.push_back(inspire_hand_.curangle_[i]);
-        feedback.error.positions.push_back(std::abs(inspire_hand_.curangle_[i] - inspire_hand_.setangle_[i]));
+        feedback.error.positions.push_back(std::abs(inspire_hand_.curangle_[i] - inspire_hand_.setangle_cmd_[i]));
       }
       jnt_traj_interface_.setFeedback(feedback);
     }
@@ -1415,12 +1415,12 @@ void URwInspireHardwareInterface::startJointInterpolation(const hardware_interfa
     p[4] = point.positions[4];
     p[5] = point.positions[5];
     if(point.positions.size() == 12) {
-      inspire_hand_.setangle_[0] = point.positions[6];
-      inspire_hand_.setangle_[1] = point.positions[7];
-      inspire_hand_.setangle_[2] = point.positions[8];
-      inspire_hand_.setangle_[3] = point.positions[9];
-      inspire_hand_.setangle_[4] = point.positions[10];
-      inspire_hand_.setangle_[5] = point.positions[11];
+      inspire_hand_.setangle_cmd_[0] = point.positions[6];
+      inspire_hand_.setangle_cmd_[1] = point.positions[7];
+      inspire_hand_.setangle_cmd_[2] = point.positions[8];
+      inspire_hand_.setangle_cmd_[3] = point.positions[9];
+      inspire_hand_.setangle_cmd_[4] = point.positions[10];
+      inspire_hand_.setangle_cmd_[5] = point.positions[11];
     }
     double next_time = point.time_from_start.toSec();
     ur_driver_->writeTrajectoryPoint(p, false, next_time - last_time);
@@ -1517,8 +1517,17 @@ void URwInspireHardwareInterface::handCommunicationThread(inspire_hand::hand_ser
     inspire_hand.get_actual_force();
     std::this_thread::sleep_for(std::chrono::milliseconds(1));
 
-    if (in_freedrive) {
-      inspire_hand.get_set_angle();
+    if(power_open) {
+      for(int i = 0; i < 5; i++) {
+        inspire_hand.setangle_[i] = inspire_hand::angle_lower_limit[i];
+      }
+      power_open = false;
+    } else if(power_close) {
+      for(int i = 0; i < 5; i++) {
+        inspire_hand.setangle_[i] = inspire_hand::angle_upper_limit[i];
+      }
+      power_close = false;
+    } else if(in_freedrive) {
       const std::vector<double> force_ratio_lookup = {0.00147, 0.00147, 0.00147, 0.00147, 0.0006, 0.001308};
       const std::vector<double> force_pos_threshold_lookup = {80, 80, 80, 80, 80, 80};
       const std::vector<double> force_neg_threshold_lookup = {-60, -60, -60, -60, -10, -220};
@@ -1535,20 +1544,10 @@ void URwInspireHardwareInterface::handCommunicationThread(inspire_hand::hand_ser
           }
         }
       }
-    }
-    if(power_open) {
-      inspire_hand.get_set_angle();
-      for(int i = 0; i < 5; i++) {
-        inspire_hand.setangle_[i] = inspire_hand::angle_lower_limit[i];
+    } else {
+      for(int i = 0; i < 6; i++) {
+        inspire_hand.setangle_[i] = inspire_hand.setangle_cmd_[i];
       }
-      power_open = false;
-    }
-    if(power_close) {
-      inspire_hand.get_set_angle();
-      for(int i = 0; i < 5; i++) {
-        inspire_hand.setangle_[i] = inspire_hand::angle_upper_limit[i];
-      }
-      power_close = false;
     }
     inspire_hand.set_angle(inspire_hand.setangle_);
     std::this_thread::sleep_for(std::chrono::milliseconds(1));

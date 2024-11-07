@@ -147,6 +147,7 @@ public:
     double tempvalue_[6];
     double setpos_[6];
     double setangle_[6];
+    double setangle_cmd_[6];
     double setforce_[6];
 
     //Serial variables
