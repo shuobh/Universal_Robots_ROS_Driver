@@ -793,6 +793,8 @@ void HardwareInterface::read(const ros::Time& time, const ros::Duration& period)
       {
         ROS_ERROR("Restarting robot driver due to connection issue!");
         std::system("rosnode kill /robot_state_publisher & rosnode kill /ros_control_controller_spawner & rosnode kill /ros_control_stopped_spawner & rosnode kill /controller_stopper & rosnode kill /ur_hardware_interface/ur_robot_state_helper & rosnode kill /ur_hardware_interface");
+      } else {
+        error_counter = 0;
       }
     }
   }
@@ -805,7 +807,17 @@ void HardwareInterface::write(const ros::Time& time, const ros::Duration& period
       robot_program_running_ && (!non_blocking_read_ || packet_read_))
   {
     if (in_freedrive_ || in_forcemode_) {
-      ur_driver_->writeKeepalive();
+      static int error_counter = 0;
+      if(!ur_driver_->writeKeepalive()) {
+        ROS_ERROR("Could send fresh data package to robot");
+        if(error_counter++ > 50)
+        {
+          ROS_ERROR("Restarting robot driver due to connection issue!");
+          std::system("rosnode kill /robot_state_publisher & rosnode kill /ros_control_controller_spawner & rosnode kill /ros_control_stopped_spawner & rosnode kill /controller_stopper & rosnode kill /ur_hardware_interface/ur_robot_state_helper & rosnode kill /ur_hardware_interface");
+        }
+      } else {
+        error_counter = 0;
+      }
     }
     else if (position_controller_running_)
     {
