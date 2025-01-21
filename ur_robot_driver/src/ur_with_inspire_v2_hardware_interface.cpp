@@ -120,10 +120,10 @@ bool URwInspireHardwareInterface::init(ros::NodeHandle& root_nh, ros::NodeHandle
   int hand_id = robot_hw_nh.param("hand_id", 1);
 
   // IP that will be used for the hand controller to communicate back to the driver.
-  std::string hand_ip = robot_hw_nh.param<std::string>("hand_ip", "");
+  std::string hand_ip = robot_hw_nh.param<std::string>("hand_ip", "192.168.11.210");
 
   // Port that will be opened to communicate between the driver and the hand controller.
-  int hand_port = robot_hw_nh.param("hand_port", 50005);
+  int hand_port = robot_hw_nh.param("hand_port", 6000);
 
   // When the robot's URDF is being loaded with a prefix, we need to know it here, as well, in order
   // to publish correct frame names for frames reported by the robot directly.
