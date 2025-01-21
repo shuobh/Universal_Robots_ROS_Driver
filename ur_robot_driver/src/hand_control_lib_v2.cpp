@@ -93,9 +93,12 @@ bool hand_serial::get_actual_force() {
     ROS_INFO("Hand: Get Force Actual values request received");
 
     // 直接读取各个手指的实际受力值
-    get_reg(curforce_, 1582); // 从寄存器 1582 开始读取
+    double force[6];
+    get_reg(force, 1582); // 从寄存器 1582 开始读取
+    for(int i = 0; i<6; i++)
+        curforce_[i] = force[i]>32768?force[i]-65536:force[i];
 
-    return validate_values(curforce_, 0, 3000);
+    return validate_values(curforce_, -3000, 3000);
 }
 
 bool hand_serial::get_actual_current() {
@@ -271,7 +274,7 @@ bool hand_serial::validate_values(const double values[6], double lower_limit, do
     // 检查请求中的位置参数是否合法
     for(int i = 0; i < 6; i++) {
         if (values[i] < lower_limit || values[i] > upper_limit) {
-            ROS_WARN("Hand: value error! Values must be >= %f and <= %f.", lower_limit, upper_limit);
+            ROS_WARN("Hand: value error! Values (%f) must be >= %f and <= %f.", values[i], lower_limit, upper_limit);
             return false; // 返回失败
         }
     }

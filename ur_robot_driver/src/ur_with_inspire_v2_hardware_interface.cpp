@@ -346,6 +346,7 @@ bool URwInspireHardwareInterface::init(ros::NodeHandle& root_nh, ros::NodeHandle
 
   // initialize the inspire hand
   inspire_hand_.initialize(hand_id, hand_ip, hand_port);
+  inspire_hand_.set_force_calibration();
 
   hand_control_thread_ = std::thread(handCommunicationThread, std::ref(inspire_hand_), std::ref(hand_in_freedrive_), std::ref(power_open_), std::ref(power_close_));
 
@@ -1538,9 +1539,9 @@ void URwInspireHardwareInterface::handCommunicationThread(inspire_hand::hand_ser
       }
       power_close = false;
     } else if(in_freedrive) {
-      const std::vector<double> force_ratio_lookup = {0.00147, 0.00147, 0.00147, 0.00147, 0.0006, 0.001308};
+      const std::vector<double> force_ratio_lookup = {0.0016, 0.0016, 0.0016, 0.0016, 0.00092, 0.0017};
       const std::vector<double> force_pos_threshold_lookup = {80, 80, 80, 80, 80, 80};
-      const std::vector<double> force_neg_threshold_lookup = {-60, -60, -60, -60, -10, -220};
+      const std::vector<double> force_neg_threshold_lookup = {-20, -20, -20, -20, -10, -80};
       for(int i = 0; i < 6; i++) {
         if(fabs(inspire_hand.setangle_[i] - inspire_hand.curangle_[i]) < 0.05) {
           auto force_neg_threshold = force_neg_threshold_lookup[i];
