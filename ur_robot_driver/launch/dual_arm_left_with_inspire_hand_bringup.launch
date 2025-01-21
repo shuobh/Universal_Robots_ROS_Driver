@@ -29,6 +29,7 @@
   <arg name="port" default= "/dev/ttyUSB0" />
   <arg name="baud" default= "115200" />
   <arg name="test_flag" default= "0" />
+  <arg name="driver_version" default= "ur_with_inspire_robot_driver_node" />
 
   <include file="$(find ur_robot_driver)/launch/ur_with_inspire_common.launch" pass_all_args="true"/>
 </launch>

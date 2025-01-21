@@ -29,6 +29,7 @@
   <arg name="port" default= "/dev/ttyUSB0" />
   <arg name="baud" default= "115200" />
   <arg name="test_flag" default= "0" />
+  <arg name="driver_version" default= "ur_with_inspire_robot_driver_node" />
 
   <!-- robot model -->
   <include file="$(arg robot_description_file)">
@@ -66,5 +67,6 @@
     <arg name ="port" value="$(arg port)" />
     <arg name ="baud" value="$(arg baud)" />
     <arg name ="test_flag" value="$(arg test_flag)" />
+    <arg name ="driver_version" value="$(arg driver_version)" />
   </include>
 </launch>
