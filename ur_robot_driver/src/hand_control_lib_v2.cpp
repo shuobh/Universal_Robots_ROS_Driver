@@ -110,19 +110,35 @@ bool hand_serial::get_actual_current() {
 bool hand_serial::get_set_angle() {
     ROS_INFO("Hand: Get Angle Set values request received");
 
+    double angle[6];
     // 直接读取各个手指的上电初始角度
-    get_reg(setangle_, 1486); // 从寄存器 1486 开始读取
+    get_reg(angle, 1486); // 从寄存器 1486 开始读取
 
-    return validate_values(setangle_, 0, 2000); // 检查读取的值是否有效
+    if (!validate_values(angle, 0, 1000)) {
+        return false;
+    }
+
+    for(int i = 0; i < 6; i++) {
+        setangle_[i] = (1000.0 - angle[i]) / 1000.0 * (angle_upper_limit[i] - angle_lower_limit[i]);
+    }
+    return true;
 }
 
 bool hand_serial::get_actual_angle() {
     ROS_INFO("Hand: Get Angle Actual values request received");
 
-    // 直接读取各个手指的角度实际值
-    get_reg(curangle_, 1546); // 从寄存器 1546 开始读取
+    double angle[6];
+    // 直接读取各个手指的上电初始角度
+    get_reg(angle, 1546); // 从寄存器 1486 开始读取
 
-    return validate_values(curangle_, 0, 2000); // 检查读取的值是否有效
+    if (!validate_values(angle, 0, 1000)) {
+        return false;
+    }
+
+    for(int i = 0; i < 6; i++) {
+        curangle_[i] = (1000.0 - angle[i]) / 1000.0 * (angle_upper_limit[i] - angle_lower_limit[i]);
+    }
+    return true;
 }
 
 bool hand_serial::get_set_force() {
@@ -314,9 +330,12 @@ bool hand_serial::set_default_speed(const double speed[6]) {
 
 bool hand_serial::set_angle(const double angle[6]) {
     ROS_INFO("hand: set angle");
-
-    if(validate_values(angle, -1, 1000)) {
-        return set_reg(angle, 1486); // 返回成功
+    double encoder[6];
+    for(int i = 0; i < 6; i++) {
+        encoder[i] = (1000.0 - 1000.0 * angle[i] / (angle_upper_limit[i] - angle_lower_limit[i]));
+    }
+    if(validate_values(encoder, -1, 1000)) {
+        return set_reg(encoder, 1486); // 返回成功
     }
     return false; // 返回失败
 }

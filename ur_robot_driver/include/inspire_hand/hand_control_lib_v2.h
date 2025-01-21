@@ -12,9 +12,8 @@
 
 namespace inspire_hand {
 // Define the maximum and minimum angle limits for the hand
-const double angle_upper_limit[] = {1.47, 1.47, 1.47, 1.47, 0.6, 1.308};
+const double angle_upper_limit[] = {1.6, 1.6, 1.6, 1.6, 0.92, 1.7};
 const double angle_lower_limit[] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
-
 class hand_serial {
 public:
     hand_serial() {};
