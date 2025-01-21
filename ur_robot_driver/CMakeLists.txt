@@ -3,6 +3,9 @@ project(ur_robot_driver)
 
 add_definitions( -DROS_BUILD )
 
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(MODBUS REQUIRED libmodbus)
+
 if(NOT CMAKE_CONFIGURATION_TYPES AND NOT CMAKE_BUILD_TYPE)
   message("${PROJECT_NAME}: You did not request a specific build type: selecting 'RelWithDebInfo'.")
   set(CMAKE_BUILD_TYPE RelWithDebInfo)
@@ -82,6 +85,7 @@ include_directories(
   include
   ${catkin_INCLUDE_DIRS}
   ${Boost_INCLUDE_DIRS}
+  ${MODBUS_INCLUDE_DIRS}
 )
 
 add_library(ur_robot_driver_plugin
@@ -119,6 +123,15 @@ add_executable(ur_with_inspire_robot_driver_node
 )
 target_link_libraries(ur_with_inspire_robot_driver_node ${catkin_LIBRARIES} ur_client_library::urcl urcl_log_handler)
 add_dependencies(ur_with_inspire_robot_driver_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+
+add_executable(ur_with_inspire_v2_robot_driver_node
+  src/dashboard_client_ros.cpp
+  src/ur_with_inspire_v2_hardware_interface.cpp
+  src/hand_control_lib_v2.cpp
+  src/ur_with_inspire_v2_hardware_interface_node.cpp
+)
+target_link_libraries(ur_with_inspire_v2_robot_driver_node ${catkin_LIBRARIES} ur_client_library::urcl urcl_log_handler ${MODBUS_LIBRARIES})
+add_dependencies(ur_with_inspire_v2_robot_driver_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 add_executable(dashboard_client
   src/dashboard_client_ros.cpp
@@ -160,7 +173,7 @@ if(CATKIN_ENABLE_TESTING)
 endif()
 
 
-install(TARGETS ur_robot_driver_plugin urcl_log_handler ur_robot_driver_node robot_state_helper dashboard_client controller_stopper_node ur_with_inspire_robot_driver_node ur_with_inspire_robot_driver_plugin inspire_hand_calibration
+install(TARGETS ur_robot_driver_plugin urcl_log_handler ur_robot_driver_node robot_state_helper dashboard_client controller_stopper_node ur_with_inspire_robot_driver_node ur_with_inspire_v2_robot_driver_node ur_with_inspire_robot_driver_plugin inspire_hand_calibration
   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
