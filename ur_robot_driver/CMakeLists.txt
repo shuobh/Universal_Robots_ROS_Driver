@@ -166,6 +166,16 @@ target_link_libraries(inspire_hand_calibration
   ${catkin_LIBRARIES}
 )
 
+add_executable(inspire_hand_v2_calibration
+  src/inspire_hand_v2_force_calibration.cpp
+  src/hand_control_lib_v2.cpp
+)
+add_dependencies(inspire_hand_v2_calibration ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(inspire_hand_v2_calibration
+  ${catkin_LIBRARIES}
+  ${MODBUS_LIBRARIES}
+)
+
 if(CATKIN_ENABLE_TESTING)
   find_package(rostest REQUIRED)
 
@@ -173,7 +183,9 @@ if(CATKIN_ENABLE_TESTING)
 endif()
 
 
-install(TARGETS ur_robot_driver_plugin urcl_log_handler ur_robot_driver_node robot_state_helper dashboard_client controller_stopper_node ur_with_inspire_robot_driver_node ur_with_inspire_v2_robot_driver_node ur_with_inspire_robot_driver_plugin inspire_hand_calibration
+install(TARGETS ur_robot_driver_plugin urcl_log_handler ur_robot_driver_node robot_state_helper dashboard_client
+                controller_stopper_node ur_with_inspire_robot_driver_node ur_with_inspire_v2_robot_driver_node
+                ur_with_inspire_robot_driver_plugin inspire_hand_calibration inspire_hand_v2_calibration
   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
