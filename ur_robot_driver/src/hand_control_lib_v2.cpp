@@ -481,53 +481,86 @@ std::vector<std::tuple<int, int, int, int, int, std::string>> tactile_read_looku
 
 cv::Mat hand_serial::convert_tactile_data_to_image(const std::vector<std::vector<std::vector<int>>>& multi_tactile_data, int rows, int cols) {
     std::vector<cv::Mat> images;
-    for(int ind = 0; ind < multi_tactile_data.size() - 1; ind++) {
+
+    for (int ind = 0; ind < multi_tactile_data.size() - 1; ind++) {
         int row = std::get<1>(tactile_read_lookup[ind]);
         int col = std::get<2>(tactile_read_lookup[ind]);
         int sub_image_row = std::get<3>(tactile_read_lookup[ind]);
         int sub_image_col = std::get<4>(tactile_read_lookup[ind]);
-        cv::Mat image(row, col, CV_8UC1);
-        for(int i = 0; i < row; i++) {
-            for(int j = 0; j < col; j++) {
+
+        cv::Mat image(row, col, CV_8UC1); // Grayscale image (CV_8UC1)
+        for (int i = 0; i < row; i++) {
+            for (int j = 0; j < col; j++) {
                 image.at<uchar>(i, j) = multi_tactile_data[ind][i][j] / 16;
             }
         }
-        if(sub_image_col == 0) {
-            images.push_back(image);
+
+        if (sub_image_col == 0) {
+            images.push_back(image); // Push first image to the vector
         } else {
-            // resize the image and hconcat with the previous image
+            // Resize the image and horizontally concatenate with the previous image
             int max_width = std::max(images[sub_image_row].cols, image.cols);
-            cv::resize(image, image, cv::Size(max_width, 0), 0, 0, cv::INTER_NEAREST);
-            cv::resize(images[sub_image_row], images[sub_image_row], cv::Size(max_width, 0), 0, 0, cv::INTER_NEAREST);
-            cv::hconcat(images[sub_image_row], image, images[sub_image_row]);
+            double scale_ratio = static_cast<double>(max_width) / image.cols;
+            cv::Mat resized_image;
+            cv::resize(image, resized_image, cv::Size(max_width, static_cast<int>(scale_ratio * image.rows)), 0, 0, cv::INTER_NEAREST);
+
+            scale_ratio = static_cast<double>(max_width) / images[sub_image_row].cols;
+            cv::Mat resized_previous_image;
+            cv::resize(images[sub_image_row], resized_previous_image, cv::Size(max_width, static_cast<int>(scale_ratio * images[sub_image_row].rows)), 0, 0, cv::INTER_NEAREST);
+
+            // Horizontally concatenate the images
+            cv::Mat concatenated_image;
+            cv::vconcat(resized_previous_image, resized_image, concatenated_image);
+
+            // Store the result back into the vector
+            images[sub_image_row] = concatenated_image;
         }
-    }
-    int max_height = images[0].rows;
-    for(int i = 1; i < images.size(); i++) {
-        max_height = std::max(images[i].rows, max_height);
-    }
-    for(int i = 0; i < images.size(); i++) {
-        cv::resize(images[i], images[i], cv::Size(0, max_height), 0, 0, cv::INTER_NEAREST);
-    }
-    cv::Mat combined_image = images[0];
-    for(int i = 1; i < images.size(); i++) {
-        cv::vconcat(combined_image, images[i], combined_image);
     }
 
-    int row = std::get<1>(tactile_read_lookup[multi_tactile_data.size() - 1]);
-    int col = std::get<2>(tactile_read_lookup[multi_tactile_data.size() - 1]);
-    cv::Mat image(row, col, CV_8UC1);
-    for(int i = 0; i < row; i++) {
-        for(int j = 0; j < col; j++) {
-            image.at<uchar>(i, j) = multi_tactile_data[multi_tactile_data.size() - 1][i][j] / 16;
+    // Ensure all images have the same number of rows
+    int max_height = images[0].rows;
+    for (int i = 1; i < images.size(); i++) {
+        max_height = std::max(images[i].rows, max_height);
+    }
+
+    for (int i = 0; i < images.size(); i++) {
+        if (images[i].rows != max_height) {
+            cv::resize(images[i], images[i], cv::Size(images[i].cols, max_height));
         }
     }
-    int max_width = std::max(combined_image.cols, image.cols);
-    cv::resize(image, image, cv::Size(max_width, 0), 0, 0, cv::INTER_NEAREST);
-    cv::resize(combined_image, combined_image, cv::Size(max_width, 0), 0, 0, cv::INTER_NEAREST);
-    cv::hconcat(combined_image, image, combined_image);
+
+    // Vertically concatenate the images
+    cv::Mat combined_image = images[0];
+    for (int i = 1; i < images.size(); i++) {
+        cv::hconcat(combined_image, images[i], combined_image);
+    }
+
+    // Resize the final combined image to the desired size
+    int row = std::get<1>(tactile_read_lookup[multi_tactile_data.size() - 1]);
+    int col = std::get<2>(tactile_read_lookup[multi_tactile_data.size() - 1]);
+    cv::Mat final_image(row, col, CV_8UC1);
+    for (int i = 0; i < row; i++) {
+        for (int j = 0; j < col; j++) {
+            final_image.at<uchar>(i, j) = multi_tactile_data[multi_tactile_data.size() - 1][i][j] / 16;
+        }
+    }
+
+    int max_width = std::max(combined_image.cols, final_image.cols);
+    double scale_ratio = static_cast<double>(max_width) / final_image.cols;
+    cv::resize(final_image, final_image, cv::Size(max_width, static_cast<int>(scale_ratio * final_image.rows)), 0, 0, cv::INTER_NEAREST);
+
+    scale_ratio = static_cast<double>(max_width) / combined_image.cols;
+    cv::resize(combined_image, combined_image, cv::Size(max_width, static_cast<int>(scale_ratio * combined_image.rows)), 0, 0, cv::INTER_NEAREST);
+
+    // Horizontally concatenate the final image with the combined image
+    cv::vconcat(combined_image, final_image, combined_image);
+
+    // Resize the final combined image to the desired size
     cv::resize(combined_image, combined_image, cv::Size(cols, rows), 0, 0, cv::INTER_NEAREST);
+
     return combined_image;
+
+
 }
 
 bool hand_serial::get_tactile_data() {
