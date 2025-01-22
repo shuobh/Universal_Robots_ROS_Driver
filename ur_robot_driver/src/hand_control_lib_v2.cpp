@@ -27,7 +27,7 @@ void hand_serial::initialize(int hand_id, std::string ip_address, int port) {
         ctx_ = nullptr;
     }
 
-    ROS_INFO("Connected to Modbus server at %s:%d", ip_address_.c_str(), port_);
+    ROS_DEBUG("Connected to Modbus server at %s:%d", ip_address_.c_str(), port_);
 }
 
 void hand_serial::get_reg(double (&values)[6], int pin) {
@@ -38,7 +38,7 @@ void hand_serial::get_reg(double (&values)[6], int pin) {
 
 // Callback to get error information
 bool hand_serial::get_error() {
-    ROS_INFO("Hand: Get error request received");
+    ROS_DEBUG("Hand: Get error request received");
 
     uint16_t tab_reg[6]; // 用于存储读取的寄存器值
 
@@ -56,15 +56,15 @@ bool hand_serial::get_error() {
         errorvalue_[i * 2 + 1] = static_cast<float>((tab_reg[i] >> 8) & 0xFF); // 高字节在后
         
         // 输出故障信息
-        ROS_INFO("ERROR(%d): %f", i * 2, errorvalue_[i * 2]);         // 输出低字节
-        ROS_INFO("ERROR(%d): %f", i * 2 + 1, errorvalue_[i * 2 + 1]); // 输出高字节
+        ROS_DEBUG("ERROR(%d): %f", i * 2, errorvalue_[i * 2]);         // 输出低字节
+        ROS_DEBUG("ERROR(%d): %f", i * 2 + 1, errorvalue_[i * 2 + 1]); // 输出高字节
     }
 
     return true; // 返回成功
 }
 
 bool hand_serial::get_status() {
-    ROS_INFO("Hand: Get status request received");
+    ROS_DEBUG("Hand: Get status request received");
 
     uint16_t tab_reg[6]; // 用于存储读取的寄存器值
 
@@ -82,15 +82,15 @@ bool hand_serial::get_status() {
         statusvalue_[i * 2 + 1] = static_cast<int16_t>((tab_reg[i] >> 8) & 0xFF); // 高字节在后
         
         // 输出状态信息
-        ROS_INFO("STATUS(%d): %d", i * 2, statusvalue_[i * 2]);         // 输出低字节
-        ROS_INFO("STATUS(%d): %d", i * 2 + 1, statusvalue_[i * 2 + 1]); // 输出高字节
+        ROS_DEBUG("STATUS(%d): %d", i * 2, statusvalue_[i * 2]);         // 输出低字节
+        ROS_DEBUG("STATUS(%d): %d", i * 2 + 1, statusvalue_[i * 2 + 1]); // 输出高字节
     }
 
     return true; // 返回成功
 }
 
 bool hand_serial::get_actual_force() {
-    ROS_INFO("Hand: Get Force Actual values request received");
+    ROS_DEBUG("Hand: Get Force Actual values request received");
 
     // 直接读取各个手指的实际受力值
     double force[6];
@@ -102,7 +102,7 @@ bool hand_serial::get_actual_force() {
 }
 
 bool hand_serial::get_actual_current() {
-    ROS_INFO("Hand: Get Current values request received");
+    ROS_DEBUG("Hand: Get Current values request received");
 
     // 直接读取各个电缸的电流值
     get_reg(current_, 1594); // 从寄存器 1594 开始读取
@@ -111,7 +111,7 @@ bool hand_serial::get_actual_current() {
 }
 
 bool hand_serial::get_set_angle() {
-    ROS_INFO("Hand: Get Angle Set values request received");
+    ROS_DEBUG("Hand: Get Angle Set values request received");
 
     double angle[6];
     // 直接读取各个手指的上电初始角度
@@ -128,7 +128,7 @@ bool hand_serial::get_set_angle() {
 }
 
 bool hand_serial::get_actual_angle() {
-    ROS_INFO("Hand: Get Angle Actual values request received");
+    ROS_DEBUG("Hand: Get Angle Actual values request received");
 
     double angle[6];
     // 直接读取各个手指的上电初始角度
@@ -145,7 +145,7 @@ bool hand_serial::get_actual_angle() {
 }
 
 bool hand_serial::get_set_force() {
-    ROS_INFO("Hand: Get Force Set values request received");
+    ROS_DEBUG("Hand: Get Force Set values request received");
 
     // 直接读取各个手指的力控设置值
     get_reg(setforce_, 1498); // 从寄存器 1498 开始读取
@@ -155,7 +155,7 @@ bool hand_serial::get_set_force() {
 
 bool hand_serial::get_temp()
 {
-    ROS_INFO("Hand: Get temperature request received");
+    ROS_DEBUG("Hand: Get temperature request received");
 
     uint16_t tab_reg[6]; // 用于存储读取的寄存器值
 
@@ -173,15 +173,15 @@ bool hand_serial::get_temp()
         tempvalue_[i * 2 + 1] = static_cast<int16_t>((tab_reg[i] >> 8) & 0xFF); // 高字节
         
         // 输出温度信息
-        ROS_INFO("TEMP(%d): %d", i * 2, tempvalue_[i * 2]);      // 输出低字节
-        ROS_INFO("TEMP(%d): %d", i * 2 + 1, tempvalue_[i * 2 + 1]); // 输出高字节
+        ROS_DEBUG("TEMP(%d): %d", i * 2, tempvalue_[i * 2]);      // 输出低字节
+        ROS_DEBUG("TEMP(%d): %d", i * 2 + 1, tempvalue_[i * 2 + 1]); // 输出高字节
     }
 
     return true; // 返回成功
 }
 
 bool hand_serial::get_set_position() {
-    ROS_INFO("Hand: Get Position Set values request received");
+    ROS_DEBUG("Hand: Get Position Set values request received");
 
     // 直接读取各个手指的驱动器位置设置值
     get_reg(setpos_, 1474); // 从寄存器 1474 开始读取
@@ -190,7 +190,7 @@ bool hand_serial::get_set_position() {
 }
 
 bool hand_serial::get_actual_position() {
-    ROS_INFO("Hand: Get Position Actual values request received");
+    ROS_DEBUG("Hand: Get Position Actual values request received");
 
     // 直接读取各个手指的驱动器实际位置值
     get_reg(curpos_, 1534); // 从寄存器 1534 开始读取
@@ -200,7 +200,7 @@ bool hand_serial::get_actual_position() {
 
 // Callback to set ID
 bool hand_serial::set_id(int id) {
-    ROS_INFO("Hand: Set ID request received");
+    ROS_DEBUG("Hand: Set ID request received");
 
     // 检查请求中的 ID 是否在合法范围内
     if (id >= 1 && id <= 254) {
@@ -211,9 +211,9 @@ bool hand_serial::set_id(int id) {
             // 读取寄存器以验证写入的 ID
             int read_value = readRegister(1000);
             if (read_value != -1) {
-                ROS_INFO("Read ID from Modbus register: %d", read_value);
+                ROS_DEBUG("Read ID from Modbus register: %d", read_value);
                 if (read_value == id) {
-                    ROS_INFO("ID verification successful.");
+                    ROS_DEBUG("ID verification successful.");
                 } else {
                     ROS_WARN("ID verification failed! Expected: %d, Read: %d", id, read_value);
                     return false;
@@ -226,7 +226,7 @@ bool hand_serial::set_id(int id) {
 
 // Callback to set Reduction Ratio
 bool hand_serial::set_redu_ratio(int redu_ratio) {
-    ROS_INFO("Hand: Set Reduction Ratio request received");
+    ROS_DEBUG("Hand: Set Reduction Ratio request received");
 
     // 检查请求中的 redu_ratio 是否在合法范围内
     if (redu_ratio >= 0 && redu_ratio <= 4) {
@@ -237,9 +237,9 @@ bool hand_serial::set_redu_ratio(int redu_ratio) {
             // 读取寄存器以验证写入的 redu_ratio
             int read_value = readRegister(1002);
             if (read_value != -1) {
-                ROS_INFO("Read REDU_RATIO from Modbus register: %d", read_value);
+                ROS_DEBUG("Read REDU_RATIO from Modbus register: %d", read_value);
                 if (read_value == redu_ratio) {
-                    ROS_INFO("Reduction Ratio verification successful.");
+                    ROS_DEBUG("Reduction Ratio verification successful.");
                 } else {
                     ROS_WARN("Reduction Ratio verification failed! Expected: %d, Read: %d", redu_ratio, read_value);
                     return false;
@@ -290,7 +290,7 @@ bool hand_serial::set_reg(const double values[6], int pin) {
     // 读取某个寄存器的值（位置0）
     int read_value = readRegister(pin);
     if (read_value != -1) {
-        ROS_INFO("Read value: %d", read_value);
+        ROS_DEBUG("Read value: %d", read_value);
     }
     return status; // 返回成功
 }
@@ -308,7 +308,7 @@ bool hand_serial::save_setting() {
 
 // Callback to set position
 bool hand_serial::set_position(const double pos[6]) {
-    ROS_INFO("hand: set pos");
+    ROS_DEBUG("hand: set pos");
     if(validate_values(pos, 0, 2000)) {
         return set_reg(pos, 1474); // 返回成功
     }
@@ -316,7 +316,7 @@ bool hand_serial::set_position(const double pos[6]) {
 }
 
 bool hand_serial::set_speed(const double speed[6]) {
-    ROS_INFO("hand: set speed");
+    ROS_DEBUG("hand: set speed");
 
     if(validate_values(speed, 0, 1000)) {
         return set_reg(speed, 1522); // 返回成功
@@ -324,7 +324,7 @@ bool hand_serial::set_speed(const double speed[6]) {
 }
 
 bool hand_serial::set_default_speed(const double speed[6]) {
-    ROS_INFO("hand: set default speed");
+    ROS_DEBUG("hand: set default speed");
     if(validate_values(speed, 0, 1000) && set_reg(speed, 1032)) {
         return save_setting(); // 返回成功
     }
@@ -332,7 +332,7 @@ bool hand_serial::set_default_speed(const double speed[6]) {
 }
 
 bool hand_serial::set_angle(const double angle[6]) {
-    ROS_INFO("hand: set angle");
+    ROS_DEBUG("hand: set angle");
     double encoder[6];
     for(int i = 0; i < 6; i++) {
         encoder[i] = (1000.0 - 1000.0 * angle[i] / (angle_upper_limit[i] - angle_lower_limit[i]));
@@ -344,7 +344,7 @@ bool hand_serial::set_angle(const double angle[6]) {
 }
 
 bool hand_serial::set_force(const double force[6]) {
-    ROS_INFO("hand: set force");
+    ROS_DEBUG("hand: set force");
 
     if(validate_values(force, 0, 3000)) {
         return set_reg(force, 1498); // 返回成功
@@ -353,7 +353,7 @@ bool hand_serial::set_force(const double force[6]) {
 }
 
 bool hand_serial::set_default_force(const double force[6]) {
-    ROS_INFO("Hand: Set Default Force request received");
+    ROS_DEBUG("Hand: Set Default Force request received");
 
     if(validate_values(force, 0, 3000) && set_reg(force, 1044)) {
         return save_setting(); // 返回成功
@@ -362,7 +362,7 @@ bool hand_serial::set_default_force(const double force[6]) {
 }
 
 bool hand_serial::set_force_calibration() {
-    ROS_INFO("Hand: Set Force Calibration request received");
+    ROS_DEBUG("Hand: Set Force Calibration request received");
 
     uint16_t calibration_value = 1000; // 要写入的校准值
 
@@ -391,7 +391,7 @@ bool hand_serial::set_force_calibration() {
 }
 
 bool hand_serial::set_current_limit(const double current_limit[6]) {
-    ROS_INFO("Hand: Set Current Limit request received");
+    ROS_DEBUG("Hand: Set Current Limit request received");
 
     if(validate_values(current_limit, 0, 1500)) {
         return set_reg(current_limit, 1020); // 返回成功
@@ -400,7 +400,7 @@ bool hand_serial::set_current_limit(const double current_limit[6]) {
 }
 
 bool hand_serial::set_clear_error() {
-    ROS_INFO("Hand: Set CLEAR ERROR request received");
+    ROS_DEBUG("Hand: Set CLEAR ERROR request received");
 
     uint16_t value = 1; // 写入1，代表清除错误
     int rc = writeRegister(1004, value);
@@ -414,7 +414,7 @@ bool hand_serial::set_clear_error() {
 
 // Callback to reset parameters
 bool hand_serial::set_reset_parameters() {
-    ROS_INFO("Hand: Set RESET PARAMETER request received");
+    ROS_DEBUG("Hand: Set RESET PARAMETER request received");
 
     uint16_t value = 1; // 写入1，代表重置参数
     int rc = writeRegister(1006, value);
@@ -426,24 +426,28 @@ bool hand_serial::set_reset_parameters() {
     return true; // 返回成功
 }
 
-std::vector<std::vector<int>> hand_serial::resize_tactile_data(const std::vector<int>& v, int rows, int cols) {
+std::vector<std::vector<uint16_t>> hand_serial::resize_tactile_data(const std::vector<uint16_t>& v, int rows, int cols) {
     // Create a 2D vector
-    std::vector<std::vector<int>> matrix(rows, std::vector<int>(cols));
+    std::vector<std::vector<uint16_t>> matrix(rows, std::vector<uint16_t>(cols));
 
     // Fill the matrix from the original vector
-    int index = 0;
     for (int i = 0; i < rows; ++i) {
         for (int j = 0; j < cols; ++j) {
-            if (index < v.size()) {
-                matrix[i][j] = v[index++];
-            }
+            matrix[i][j] = v[i * cols + j];
         }
     }
 
     return matrix;
 }
 
-bool hand_serial::read_tactile(int start_addr, std::vector<int>& tactile_data, int num_values) {
+bool hand_serial::read_tactile(int start_addr, std::vector<uint16_t>& tactile_data, int num_values) {
+    while(num_values > 122) {
+        if(!read_tactile(start_addr, tactile_data, 122)) {
+            return false;
+        }
+        start_addr += 122;
+        num_values -= 122;
+    }
     uint16_t tab_reg[num_values];
     int rc = modbus_read_registers(ctx_, start_addr, num_values, tab_reg);
     if (rc == -1) {
@@ -451,10 +455,8 @@ bool hand_serial::read_tactile(int start_addr, std::vector<int>& tactile_data, i
         return false; // 返回失败
     }
     for (int i = 0; i < num_values; i += 2) {
-        if (i + 1 < num_values) {
-            int16_t sensor_value = (tab_reg[i] & 0xFF) | ((tab_reg[i + 1] & 0xFF) << 8);
-            tactile_data.push_back(sensor_value);
-        }
+        uint16_t sensor_value = (tab_reg[i] & 0xFF) | ((tab_reg[i + 1] & 0xF) << 8);
+        tactile_data.push_back(sensor_value);
     }
     return true; // 返回成功
 }
@@ -479,12 +481,13 @@ std::vector<std::tuple<int, int, int, int, int, std::string>> tactile_read_looku
     {4900, 8, 14, 0, 4, "palm"}
 };
 
-cv::Mat hand_serial::convert_tactile_data_to_image(const std::vector<std::vector<std::vector<int>>>& multi_tactile_data, int rows, int cols) {
+cv::Mat hand_serial::convert_tactile_data_to_image(const std::vector<std::vector<std::vector<uint16_t>>>& multi_tactile_data, int rows, int cols) {
     std::vector<cv::Mat> images;
 
     for (int ind = 0; ind < multi_tactile_data.size() - 1; ind++) {
-        int row = std::get<1>(tactile_read_lookup[ind]);
-        int col = std::get<2>(tactile_read_lookup[ind]);
+
+        int row = multi_tactile_data[ind].size();
+        int col = multi_tactile_data[ind][0].size();
         int sub_image_row = std::get<3>(tactile_read_lookup[ind]);
         int sub_image_col = std::get<4>(tactile_read_lookup[ind]);
 
@@ -536,14 +539,16 @@ cv::Mat hand_serial::convert_tactile_data_to_image(const std::vector<std::vector
     }
 
     // Resize the final combined image to the desired size
-    int row = std::get<1>(tactile_read_lookup[multi_tactile_data.size() - 1]);
-    int col = std::get<2>(tactile_read_lookup[multi_tactile_data.size() - 1]);
+    int row = multi_tactile_data.back().size();
+    int col = multi_tactile_data.back()[0].size();
     cv::Mat final_image(row, col, CV_8UC1);
     for (int i = 0; i < row; i++) {
         for (int j = 0; j < col; j++) {
-            final_image.at<uchar>(i, j) = multi_tactile_data[multi_tactile_data.size() - 1][i][j] / 16;
+            final_image.at<uchar>(i, j) = multi_tactile_data.back()[i][j] / 16;
         }
     }
+    cv::rotate(final_image, final_image, cv::ROTATE_90_COUNTERCLOCKWISE);
+    cv::flip(final_image, final_image, 0);
 
     int max_width = std::max(combined_image.cols, final_image.cols);
     double scale_ratio = static_cast<double>(max_width) / final_image.cols;
@@ -564,13 +569,13 @@ cv::Mat hand_serial::convert_tactile_data_to_image(const std::vector<std::vector
 }
 
 bool hand_serial::get_tactile_data() {
-    std::vector<std::vector<std::vector<int>>> multi_tactile_data;
+    std::vector<std::vector<std::vector<uint16_t>>> multi_tactile_data;
     for(auto entry : tactile_read_lookup) {
-        std::vector<int> tactile_data;
-        if(!read_tactile(std::get<0>(entry), tactile_data, std::get<1>(entry) * std::get<2>(entry))) {
+        std::vector<uint16_t> tactile_data;
+        if(!read_tactile(std::get<0>(entry), tactile_data, std::get<1>(entry) * std::get<2>(entry) * 2)) {
             return false;
         }
-        multi_tactile_data.push_back(resize_tactile_data(tactile_data, std::get<1>(entry), std::get<2>(entry)));
+        multi_tactile_data.push_back(resize_tactile_data(tactile_data, std::get<2>(entry), std::get<1>(entry)));
     }
     multi_tactile_data_ = multi_tactile_data;
     multi_tactile_image_ = convert_tactile_data_to_image(multi_tactile_data);
