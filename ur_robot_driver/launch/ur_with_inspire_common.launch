@@ -34,6 +34,7 @@
   <!-- robot model -->
   <include file="$(arg robot_description_file)">
     <arg name="kinematics_params" value="$(arg kinematics_config)"/>
+    <arg name ="use_inspire_v2" value="$(arg use_inspire_v2)" />
   </include>
 
   <!-- Convert joint states to /tf tranforms -->
