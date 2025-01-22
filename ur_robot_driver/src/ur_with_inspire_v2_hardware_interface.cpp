@@ -1523,9 +1523,16 @@ void URwInspireHardwareInterface::passthroughTrajectoryDoneCb(urcl::control::Tra
 }
 
 void URwInspireHardwareInterface::handCommunicationThread(inspire_hand::hand_serial& inspire_hand, bool& in_freedrive, bool& power_open, bool& power_close) {
+  ros::NodeHandle nh;
+  ros::Publisher tactile_image_pub = nh.advertise<sensor_msgs::Image>("tactile_image", 1);
   while (ros::ok()) {
     inspire_hand.get_actual_angle();
     inspire_hand.get_actual_force();
+    inspire_hand.get_tactile_data();
+    sensor_msgs::ImagePtr ros_image;
+    ros_image = cv_bridge::CvImage(std_msgs::Header(), "mono8", inspire_hand.multi_tactile_image_).toImageMsg();
+    ros_image.get()->header.stamp = ros::Time::now();
+    tactile_image_pub.publish(ros_image);
     std::this_thread::sleep_for(std::chrono::milliseconds(1));
 
     if(power_open) {

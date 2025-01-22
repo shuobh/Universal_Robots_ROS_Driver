@@ -426,6 +426,124 @@ bool hand_serial::set_reset_parameters() {
     return true; // 返回成功
 }
 
+std::vector<std::vector<int>> hand_serial::resize_tactile_data(const std::vector<int>& v, int rows, int cols) {
+    // Create a 2D vector
+    std::vector<std::vector<int>> matrix(rows, std::vector<int>(cols));
+
+    // Fill the matrix from the original vector
+    int index = 0;
+    for (int i = 0; i < rows; ++i) {
+        for (int j = 0; j < cols; ++j) {
+            if (index < v.size()) {
+                matrix[i][j] = v[index++];
+            }
+        }
+    }
+
+    return matrix;
+}
+
+bool hand_serial::read_tactile(int start_addr, std::vector<int>& tactile_data, int num_values) {
+    uint16_t tab_reg[num_values];
+    int rc = modbus_read_registers(ctx_, start_addr, num_values, tab_reg);
+    if (rc == -1) {
+        ROS_ERROR("Failed to write registers starting at %d: %s", start_addr, modbus_strerror(errno));
+        return false; // 返回失败
+    }
+    for (int i = 0; i < num_values; i += 2) {
+        if (i + 1 < num_values) {
+            int16_t sensor_value = (tab_reg[i] & 0xFF) | ((tab_reg[i + 1] & 0xFF) << 8);
+            tactile_data.push_back(sensor_value);
+        }
+    }
+    return true; // 返回成功
+}
+
+std::vector<std::tuple<int, int, int, int, int, std::string>> tactile_read_lookup = {
+    {3000, 3, 3, 0, 0, "little_finger_tip"},
+    {3018, 12, 8, 0, 1, "little_finger_nail"},
+    {3210, 10, 8, 0, 2, "little_finger_pad"},
+    {3370, 3, 3, 1, 0, "ring_finger_tip"},
+    {3388, 12, 8, 1, 1, "ring_finger_nail"},
+    {3580, 10, 8, 1, 2, "ring_finger_pad"},
+    {3740, 3, 3, 2, 0, "middle_finger_tip"},
+    {3758, 12, 8, 2, 1, "middle_finger_nail"},
+    {3950, 10, 8, 2, 2, "middle_finger_pad"},
+    {4110, 3, 3, 3, 0, "index_finger_tip"},
+    {4128, 12, 8, 3, 1, "index_finger_nail"},
+    {4320, 10, 8, 3, 2, "index_finger_pad"},
+    {4480, 3, 3, 4, 0, "thumb_tip"},
+    {4498, 12, 8, 4, 1, "thumb_nail"},
+    {4690, 3, 3, 4, 2, "thumb_middle_section"},
+    {4708, 12, 8, 4, 3, "thumb_pad"},
+    {4900, 8, 14, 0, 4, "palm"}
+};
+
+cv::Mat hand_serial::convert_tactile_data_to_image(const std::vector<std::vector<std::vector<int>>>& multi_tactile_data, int rows, int cols) {
+    std::vector<cv::Mat> images;
+    for(int ind = 0; ind < multi_tactile_data.size() - 1; ind++) {
+        int row = std::get<1>(tactile_read_lookup[ind]);
+        int col = std::get<2>(tactile_read_lookup[ind]);
+        int sub_image_row = std::get<3>(tactile_read_lookup[ind]);
+        int sub_image_col = std::get<4>(tactile_read_lookup[ind]);
+        cv::Mat image(row, col, CV_8UC1);
+        for(int i = 0; i < row; i++) {
+            for(int j = 0; j < col; j++) {
+                image.at<uchar>(i, j) = multi_tactile_data[ind][i][j] / 16;
+            }
+        }
+        if(sub_image_col == 0) {
+            images.push_back(image);
+        } else {
+            // resize the image and hconcat with the previous image
+            int max_width = std::max(images[sub_image_row].cols, image.cols);
+            cv::resize(image, image, cv::Size(max_width, 0), 0, 0, cv::INTER_NEAREST);
+            cv::resize(images[sub_image_row], images[sub_image_row], cv::Size(max_width, 0), 0, 0, cv::INTER_NEAREST);
+            cv::hconcat(images[sub_image_row], image, images[sub_image_row]);
+        }
+    }
+    int max_height = images[0].rows;
+    for(int i = 1; i < images.size(); i++) {
+        max_height = std::max(images[i].rows, max_height);
+    }
+    for(int i = 0; i < images.size(); i++) {
+        cv::resize(images[i], images[i], cv::Size(0, max_height), 0, 0, cv::INTER_NEAREST);
+    }
+    cv::Mat combined_image = images[0];
+    for(int i = 1; i < images.size(); i++) {
+        cv::vconcat(combined_image, images[i], combined_image);
+    }
+
+    int row = std::get<1>(tactile_read_lookup[multi_tactile_data.size() - 1]);
+    int col = std::get<2>(tactile_read_lookup[multi_tactile_data.size() - 1]);
+    cv::Mat image(row, col, CV_8UC1);
+    for(int i = 0; i < row; i++) {
+        for(int j = 0; j < col; j++) {
+            image.at<uchar>(i, j) = multi_tactile_data[multi_tactile_data.size() - 1][i][j] / 16;
+        }
+    }
+    int max_width = std::max(combined_image.cols, image.cols);
+    cv::resize(image, image, cv::Size(max_width, 0), 0, 0, cv::INTER_NEAREST);
+    cv::resize(combined_image, combined_image, cv::Size(max_width, 0), 0, 0, cv::INTER_NEAREST);
+    cv::hconcat(combined_image, image, combined_image);
+    cv::resize(combined_image, combined_image, cv::Size(cols, rows), 0, 0, cv::INTER_NEAREST);
+    return combined_image;
+}
+
+bool hand_serial::get_tactile_data() {
+    std::vector<std::vector<std::vector<int>>> multi_tactile_data;
+    for(auto entry : tactile_read_lookup) {
+        std::vector<int> tactile_data;
+        if(!read_tactile(std::get<0>(entry), tactile_data, std::get<1>(entry) * std::get<2>(entry))) {
+            return false;
+        }
+        multi_tactile_data.push_back(resize_tactile_data(tactile_data, std::get<1>(entry), std::get<2>(entry)));
+    }
+    multi_tactile_data_ = multi_tactile_data;
+    multi_tactile_image_ = convert_tactile_data_to_image(multi_tactile_data);
+    return true;
+}
+
 // Read a register
 int hand_serial::readRegister(int reg_addr) {
     std::lock_guard<std::mutex> lk(cmd_mutex_);

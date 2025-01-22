@@ -9,6 +9,8 @@
 
 // ...其他服务头文件...
 #include <mutex>
+#include <opencv2/core.hpp>
+#include <opencv2/imgproc/imgproc.hpp>
 
 namespace inspire_hand {
 // Define the maximum and minimum angle limits for the hand
@@ -72,7 +74,10 @@ public:
     int getRegisterValue(int reg_addr) {
         return readRegister(reg_addr); // 通过公有方法调用私有方法
     }
-    // ...其他回调函数...
+    cv::Mat convert_tactile_data_to_image(const std::vector<std::vector<std::vector<int>>>& multi_tactile_data, int rows=256, int cols=256);
+    std::vector<std::vector<int>> resize_tactile_data(const std::vector<int>& v, int rows, int cols);
+    bool read_tactile(int start_addr, std::vector<int>& tactile_data, int num_values);
+    bool get_tactile_data();
 
     //hand state variables              
     int hand_id_;
@@ -88,6 +93,8 @@ public:
     double setangle_[6];
     double setangle_cmd_[6];
     double setforce_[6];
+    std::vector<std::vector<std::vector<int>>> multi_tactile_data_;
+    cv::Mat multi_tactile_image_;
 
 private:
     // Modbus TCP 上下文

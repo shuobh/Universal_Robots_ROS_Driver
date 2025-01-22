@@ -34,6 +34,8 @@
 #include <hardware_interface/joint_state_interface.h>
 #include <pass_through_controllers/trajectory_interface.h>
 #include <algorithm>
+#include <cv_bridge/cv_bridge.h>
+#include <sensor_msgs/Image.h>
 #include <std_msgs/Bool.h>
 #include <std_msgs/Float64.h>
 #include <std_msgs/String.h>

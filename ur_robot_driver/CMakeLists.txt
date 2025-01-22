@@ -17,6 +17,7 @@ find_package(catkin REQUIRED
     control_msgs
     controller_manager
     controller_manager_msgs
+    cv_bridge
     geometry_msgs
     hardware_interface
     industrial_robot_status_interface
@@ -39,6 +40,9 @@ find_package(catkin REQUIRED
 )
 find_package(Boost REQUIRED)
 find_package(ur_client_library REQUIRED)
+find_package(OpenCV REQUIRED)
+find_package(VTK REQUIRED)
+find_package(Eigen3 REQUIRED)
 
 catkin_package(
   INCLUDE_DIRS
@@ -86,6 +90,7 @@ include_directories(
   ${catkin_INCLUDE_DIRS}
   ${Boost_INCLUDE_DIRS}
   ${MODBUS_INCLUDE_DIRS}
+  ${OpenCV_INCLUDE_DIRS}
 )
 
 add_library(ur_robot_driver_plugin
@@ -130,7 +135,7 @@ add_executable(ur_with_inspire_v2_robot_driver_node
   src/hand_control_lib_v2.cpp
   src/ur_with_inspire_v2_hardware_interface_node.cpp
 )
-target_link_libraries(ur_with_inspire_v2_robot_driver_node ${catkin_LIBRARIES} ur_client_library::urcl urcl_log_handler ${MODBUS_LIBRARIES})
+target_link_libraries(ur_with_inspire_v2_robot_driver_node ${catkin_LIBRARIES} ur_client_library::urcl urcl_log_handler ${MODBUS_LIBRARIES} ${OpenCV_LIBRARIES})
 add_dependencies(ur_with_inspire_v2_robot_driver_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 add_executable(dashboard_client
@@ -174,6 +179,7 @@ add_dependencies(inspire_hand_v2_calibration ${${PROJECT_NAME}_EXPORTED_TARGETS}
 target_link_libraries(inspire_hand_v2_calibration
   ${catkin_LIBRARIES}
   ${MODBUS_LIBRARIES}
+  ${OpenCV_LIBRARIES}
 )
 
 if(CATKIN_ENABLE_TESTING)
