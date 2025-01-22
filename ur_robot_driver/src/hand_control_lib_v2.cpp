@@ -98,7 +98,7 @@ bool hand_serial::get_actual_force() {
     for(int i = 0; i<6; i++)
         curforce_[i] = force[i]>32768?force[i]-65536:force[i];
 
-    return validate_values(curforce_, -3000, 3000);
+    return validate_values(curforce_, -4000, 4000);
 }
 
 bool hand_serial::get_actual_current() {
