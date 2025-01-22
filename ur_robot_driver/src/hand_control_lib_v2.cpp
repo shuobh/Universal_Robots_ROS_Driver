@@ -570,13 +570,18 @@ cv::Mat hand_serial::convert_tactile_data_to_image(const std::vector<std::vector
 
 bool hand_serial::get_tactile_data() {
     std::vector<std::vector<std::vector<uint16_t>>> multi_tactile_data;
-    for(auto entry : tactile_read_lookup) {
+    for(int i = 0; i < tactile_read_lookup.size() - 1; i++) {
         std::vector<uint16_t> tactile_data;
-        if(!read_tactile(std::get<0>(entry), tactile_data, std::get<1>(entry) * std::get<2>(entry) * 2)) {
+        if(!read_tactile(std::get<0>(tactile_read_lookup[i]), tactile_data, std::get<1>(tactile_read_lookup[i]) * std::get<2>(tactile_read_lookup[i]) * 2)) {
             return false;
         }
-        multi_tactile_data.push_back(resize_tactile_data(tactile_data, std::get<2>(entry), std::get<1>(entry)));
+        multi_tactile_data.push_back(resize_tactile_data(tactile_data, std::get<1>(tactile_read_lookup[i]), std::get<2>(tactile_read_lookup[i])));
     }
+    std::vector<uint16_t> tactile_data;
+    if(!read_tactile(std::get<0>(tactile_read_lookup.back()), tactile_data, std::get<1>(tactile_read_lookup.back()) * std::get<2>(tactile_read_lookup.back()) * 2)) {
+        return false;
+    }
+    multi_tactile_data.push_back(resize_tactile_data(tactile_data, std::get<2>(tactile_read_lookup.back()), std::get<1>(tactile_read_lookup.back())));
     multi_tactile_data_ = multi_tactile_data;
     multi_tactile_image_ = convert_tactile_data_to_image(multi_tactile_data);
     return true;
