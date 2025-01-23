@@ -426,7 +426,7 @@ bool hand_serial::set_reset_parameters() {
     return true; // 返回成功
 }
 
-std::vector<std::vector<uint16_t>> hand_serial::resize_tactile_data(const std::vector<uint16_t>& v, int rows, int cols) {
+std::vector<std::vector<uint16_t>> hand_serial::resize_tactile_data(uint16_t *v, int rows, int cols) {
     // Create a 2D vector
     std::vector<std::vector<uint16_t>> matrix(rows, std::vector<uint16_t>(cols));
 
@@ -438,27 +438,6 @@ std::vector<std::vector<uint16_t>> hand_serial::resize_tactile_data(const std::v
     }
 
     return matrix;
-}
-
-bool hand_serial::read_tactile(int start_addr, std::vector<uint16_t>& tactile_data, int num_values) {
-    while(num_values > 122) {
-        if(!read_tactile(start_addr, tactile_data, 122)) {
-            return false;
-        }
-        start_addr += 122;
-        num_values -= 122;
-    }
-    uint16_t tab_reg[num_values];
-    int rc = modbus_read_registers(ctx_, start_addr, num_values, tab_reg);
-    if (rc == -1) {
-        ROS_ERROR("Failed to write registers starting at %d: %s", start_addr, modbus_strerror(errno));
-        return false; // 返回失败
-    }
-    for (int i = 0; i < num_values; i += 2) {
-        uint16_t sensor_value = (tab_reg[i] & 0xFF) | ((tab_reg[i + 1] & 0xF) << 8);
-        tactile_data.push_back(sensor_value);
-    }
-    return true; // 返回成功
 }
 
 std::vector<std::tuple<int, int, int, int, int, std::string>> tactile_read_lookup = {
@@ -571,14 +550,14 @@ cv::Mat hand_serial::convert_tactile_data_to_image(const std::vector<std::vector
 bool hand_serial::get_tactile_data() {
     std::vector<std::vector<std::vector<uint16_t>>> multi_tactile_data;
     for(int i = 0; i < tactile_read_lookup.size() - 1; i++) {
-        std::vector<uint16_t> tactile_data;
-        if(!read_tactile(std::get<0>(tactile_read_lookup[i]), tactile_data, std::get<1>(tactile_read_lookup[i]) * std::get<2>(tactile_read_lookup[i]) * 2)) {
+        uint16_t tactile_data[std::get<1>(tactile_read_lookup[i]) * std::get<2>(tactile_read_lookup[i])];
+        if(readRegisters(std::get<0>(tactile_read_lookup[i]), std::get<1>(tactile_read_lookup[i]) * std::get<2>(tactile_read_lookup[i]), tactile_data) == -1) {
             return false;
         }
         multi_tactile_data.push_back(resize_tactile_data(tactile_data, std::get<1>(tactile_read_lookup[i]), std::get<2>(tactile_read_lookup[i])));
     }
-    std::vector<uint16_t> tactile_data;
-    if(!read_tactile(std::get<0>(tactile_read_lookup.back()), tactile_data, std::get<1>(tactile_read_lookup.back()) * std::get<2>(tactile_read_lookup.back()) * 2)) {
+    uint16_t tactile_data[std::get<1>(tactile_read_lookup.back()) * std::get<2>(tactile_read_lookup.back())];
+    if(readRegisters(std::get<0>(tactile_read_lookup.back()), std::get<1>(tactile_read_lookup.back()) * std::get<2>(tactile_read_lookup.back()), tactile_data) == -1) {
         return false;
     }
     multi_tactile_data.push_back(resize_tactile_data(tactile_data, std::get<2>(tactile_read_lookup.back()), std::get<1>(tactile_read_lookup.back())));

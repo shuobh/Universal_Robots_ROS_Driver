@@ -75,8 +75,7 @@ public:
         return readRegister(reg_addr); // 通过公有方法调用私有方法
     }
     cv::Mat convert_tactile_data_to_image(const std::vector<std::vector<std::vector<uint16_t>>>& multi_tactile_data, int rows=256, int cols=256);
-    std::vector<std::vector<uint16_t>> resize_tactile_data(const std::vector<uint16_t>& v, int rows, int cols);
-    bool read_tactile(int start_addr, std::vector<uint16_t>& tactile_data, int num_values);
+    std::vector<std::vector<uint16_t>> resize_tactile_data(uint16_t *v, int rows, int cols);
     bool get_tactile_data();
 
     //hand state variables              
