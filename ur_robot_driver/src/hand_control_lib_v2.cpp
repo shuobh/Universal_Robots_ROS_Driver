@@ -478,7 +478,7 @@ cv::Mat hand_serial::convert_tactile_data_to_image(const std::vector<std::vector
         }
 
         if(std::get<5>(tactile_read_lookup[ind])) {
-            cv::flip(image, image, 0);
+            cv::rotate(image, image, cv::ROTATE_180);
         }
 
         if (sub_image_col == 0) {
