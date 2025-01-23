@@ -440,24 +440,24 @@ std::vector<std::vector<uint16_t>> hand_serial::resize_tactile_data(uint16_t *v,
     return matrix;
 }
 
-std::vector<std::tuple<int, int, int, int, int, std::string>> tactile_read_lookup = {
-    {3000, 3, 3, 0, 0, "little_finger_tip"},
-    {3018, 12, 8, 0, 1, "little_finger_nail"},
-    {3210, 10, 8, 0, 2, "little_finger_pad"},
-    {3370, 3, 3, 1, 0, "ring_finger_tip"},
-    {3388, 12, 8, 1, 1, "ring_finger_nail"},
-    {3580, 10, 8, 1, 2, "ring_finger_pad"},
-    {3740, 3, 3, 2, 0, "middle_finger_tip"},
-    {3758, 12, 8, 2, 1, "middle_finger_nail"},
-    {3950, 10, 8, 2, 2, "middle_finger_pad"},
-    {4110, 3, 3, 3, 0, "index_finger_tip"},
-    {4128, 12, 8, 3, 1, "index_finger_nail"},
-    {4320, 10, 8, 3, 2, "index_finger_pad"},
-    {4480, 3, 3, 4, 0, "thumb_tip"},
-    {4498, 12, 8, 4, 1, "thumb_nail"},
-    {4690, 3, 3, 4, 2, "thumb_middle_section"},
-    {4708, 12, 8, 4, 3, "thumb_pad"},
-    {4900, 8, 14, 0, 4, "palm"}
+std::vector<std::tuple<int, int, int, int, int, bool, std::string>> tactile_read_lookup = {
+    {3000, 3, 3, 0, 0, false, "little_finger_tip"},
+    {3018, 12, 8, 0, 1, false, "little_finger_nail"},
+    {3210, 10, 8, 0, 2, false, "little_finger_pad"},
+    {3370, 3, 3, 1, 0, false, "ring_finger_tip"},
+    {3388, 12, 8, 1, 1, false, "ring_finger_nail"},
+    {3580, 10, 8, 1, 2, false, "ring_finger_pad"},
+    {3740, 3, 3, 2, 0, false, "middle_finger_tip"},
+    {3758, 12, 8, 2, 1, false, "middle_finger_nail"},
+    {3950, 10, 8, 2, 2, false, "middle_finger_pad"},
+    {4110, 3, 3, 3, 0, false, "index_finger_tip"},
+    {4128, 12, 8, 3, 1, false, "index_finger_nail"},
+    {4320, 10, 8, 3, 2, false, "index_finger_pad"},
+    {4480, 3, 3, 4, 0, false, "thumb_tip"},
+    {4498, 12, 8, 4, 1, false, "thumb_nail"},
+    {4690, 3, 3, 4, 2, false, "thumb_middle_section"},
+    {4708, 12, 8, 4, 3, true, "thumb_pad"},
+    {4900, 8, 14, 0, 4, true, "palm"}
 };
 
 cv::Mat hand_serial::convert_tactile_data_to_image(const std::vector<std::vector<std::vector<uint16_t>>>& multi_tactile_data, int rows, int cols) {
@@ -475,6 +475,10 @@ cv::Mat hand_serial::convert_tactile_data_to_image(const std::vector<std::vector
             for (int j = 0; j < col; j++) {
                 image.at<uchar>(i, j) = multi_tactile_data[ind][i][j] / 16;
             }
+        }
+
+        if(std::get<5>(tactile_read_lookup[ind])) {
+            cv::flip(image, image, 0);
         }
 
         if (sub_image_col == 0) {
@@ -527,7 +531,9 @@ cv::Mat hand_serial::convert_tactile_data_to_image(const std::vector<std::vector
         }
     }
     cv::rotate(final_image, final_image, cv::ROTATE_90_COUNTERCLOCKWISE);
-    cv::flip(final_image, final_image, 0);
+    if(std::get<5>(tactile_read_lookup.back())) {
+        cv::flip(final_image, final_image, 0);
+    }
 
     int max_width = std::max(combined_image.cols, final_image.cols);
     double scale_ratio = static_cast<double>(max_width) / final_image.cols;
