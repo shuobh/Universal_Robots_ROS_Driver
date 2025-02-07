@@ -30,6 +30,7 @@
   <arg name="baud" default= "115200" />
   <arg name="test_flag" default= "0" />
   <arg name="use_inspire_v2" default= "false" />
+  <arg name="use_inspire_right" default= "false" />
 
   <include file="$(find ur_robot_driver)/launch/ur_with_inspire_common.launch" pass_all_args="true"/>
 </launch>
