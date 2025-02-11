@@ -521,6 +521,8 @@ bool URwInspireHardwareInterface::init(ros::NodeHandle& root_nh, ros::NodeHandle
           controller_reset_necessary_ = true;
           in_freedrive_ = false;
           hand_in_freedrive_ = false;
+          power_close_ = false;
+          power_open_ = false;
         }
         ur_driver_->getRTDEWriter().sendStandardDigitalOutput(7, in_freedrive_);
         return true;
@@ -1254,8 +1256,10 @@ bool URwInspireHardwareInterface::setIO(ur_msgs::SetIORequest& req, ur_msgs::Set
     if(req.pin == 3) {
       if(req.state) {
           power_open_ = true;
+          power_close_ = false;
       } else {
           power_close_ = true;
+          power_open_ = false;
       }
     }
     if (req.pin <= 7)
@@ -1520,15 +1524,17 @@ void URwInspireHardwareInterface::handCommunicationThread(inspire_hand::hand_ser
     if(power_open) {
       for(int i = 0; i < 5; i++) {
         inspire_hand.setangle_[i] = inspire_hand::angle_lower_limit[i];
-        inspire_hand.setangle_cmd_[i] = inspire_hand::angle_lower_limit[i];
       }
-      power_open = false;
+      if(in_freedrive) {
+        power_open = false;
+      }
     } else if(power_close) {
       for(int i = 0; i < 5; i++) {
         inspire_hand.setangle_[i] = inspire_hand::angle_upper_limit[i];
-        inspire_hand.setangle_cmd_[i] = inspire_hand::angle_upper_limit[i];
       }
-      power_close = false;
+      if(in_freedrive) {
+        power_close = false;
+      }
     } else if(in_freedrive) {
       const std::vector<double> force_ratio_lookup = {0.00147, 0.00147, 0.00147, 0.00147, 0.0006, 0.001308};
       const std::vector<double> force_pos_threshold_lookup = {80, 80, 80, 80, 80, 80};
