@@ -556,15 +556,20 @@ bool URwInspireHardwareInterface::init(ros::NodeHandle& root_nh, ros::NodeHandle
   // Set hand force through a ROS service
   set_hand_force_srv_ = robot_hw_nh.advertiseService<bluehill::SetFloats::Request, bluehill::SetFloats::Response>(
       "set_hand_force", [&](bluehill::SetFloats::Request& req, bluehill::SetFloats::Response& resp) {
-        if(req.values.size() != 6) {
-          resp.success = false;
-        } else {
-          double force[6];
+        double force[6];
+        if(req.values.size() == 1) {
+          for(int i = 0; i < 6; i++) {
+            force[i] = req.values[0];
+          }
+        } else if(req.values.size() == 6) {
           for(int i = 0; i < 6; i++) {
             force[i] = req.values[i];
           }
-          resp.success = inspire_hand_.set_force(force);
+        } else {
+          resp.success = false;
+          return true;
         }
+        resp.success = inspire_hand_.set_force(force);
         return true;
       });
 
