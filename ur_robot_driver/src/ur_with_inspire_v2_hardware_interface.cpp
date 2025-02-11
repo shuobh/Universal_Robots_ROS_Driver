@@ -42,6 +42,7 @@
 
 #include <bluehill/SetForceMove.h>
 #include <bluehill/SetFloat.h>
+#include <bluehill/SetFloats.h>
 
 using industrial_robot_status_interface::RobotMode;
 using industrial_robot_status_interface::TriState;
@@ -347,6 +348,7 @@ bool URwInspireHardwareInterface::init(ros::NodeHandle& root_nh, ros::NodeHandle
   // initialize the inspire hand
   inspire_hand_.initialize(hand_id, hand_ip, hand_port);
   inspire_hand_.set_force_calibration();
+  ros::Duration(5).sleep();
 
   hand_control_thread_ = std::thread(handCommunicationThread, std::ref(inspire_hand_), std::ref(hand_in_freedrive_), std::ref(power_open_), std::ref(power_close_));
 
@@ -547,6 +549,21 @@ bool URwInspireHardwareInterface::init(ros::NodeHandle& root_nh, ros::NodeHandle
           resp.success = this->ur_driver_->resetRevolutionCounter(req.mass);
         } else {
           resp.success = false;
+        }
+        return true;
+      });
+
+  // Set hand force through a ROS service
+  set_hand_force_srv_ = robot_hw_nh.advertiseService<bluehill::SetFloats::Request, bluehill::SetFloats::Response>(
+      "set_hand_force", [&](bluehill::SetFloats::Request& req, bluehill::SetFloats::Response& resp) {
+        if(req.values.size() != 6) {
+          resp.success = false;
+        } else {
+          double force[6];
+          for(int i = 0; i < 6; i++) {
+            force[i] = req.values[i];
+          }
+          resp.success = inspire_hand_.set_force(force);
         }
         return true;
       });

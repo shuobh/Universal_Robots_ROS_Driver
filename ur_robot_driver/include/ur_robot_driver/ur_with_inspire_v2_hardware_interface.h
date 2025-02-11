@@ -249,6 +249,7 @@ protected:
   ros::ServiceServer set_forcemode_srv_;
   
   ros::ServiceServer reset_revolution_counter_srv_;
+  ros::ServiceServer set_hand_force_srv_;
 
   hardware_interface::JointStateInterface js_interface_;
   scaled_controllers::ScaledPositionJointInterface spj_interface_;
