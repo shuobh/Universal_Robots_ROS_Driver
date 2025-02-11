@@ -69,7 +69,7 @@ bool hand_serial::get_status() {
     uint16_t tab_reg[6]; // 用于存储读取的寄存器值
 
     // 读取寄存器 (地址从 1612 开始)
-    int rc = modbus_read_registers(ctx_, 1612, 6, tab_reg);
+    int rc = readRegisters(1612, 6, tab_reg);
     if (rc == -1) {
         ROS_ERROR("Failed to read status registers: %s", modbus_strerror(errno));
         return true; // 返回成功
