@@ -561,12 +561,12 @@ bool URwInspireHardwareInterface::init(ros::NodeHandle& root_nh, ros::NodeHandle
         if(req.values.size() == 1) {
           for(int i = 0; i < 6; i++) {
             force[i] = req.values[0];
-            speed[i] = req.values[0] / 3;
+            speed[i] = std::min(req.values[0], 1000.0);
           }
         } else if(req.values.size() == 6) {
           for(int i = 0; i < 6; i++) {
             force[i] = req.values[i];
-            speed[i] = req.values[i] / 3;
+            speed[i] = std::min(req.values[i], 1000.0);
           }
         } else {
           resp.success = false;
