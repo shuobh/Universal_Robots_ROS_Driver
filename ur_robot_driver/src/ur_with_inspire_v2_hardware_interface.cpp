@@ -1290,6 +1290,12 @@ bool URwInspireHardwareInterface::setIO(ur_msgs::SetIORequest& req, ur_msgs::Set
       if(req.state) {
           power_open_ = true;
           power_close_ = false;
+          inspire_hand_.get_status();
+          for(int i = 0; i < 6; i++) {
+            if(inspire_hand_.statusvalue_[i] > 0) {
+              inspire_hand_.set_clear_error();
+            }
+          }
       } else {
           power_close_ = true;
           power_open_ = false;

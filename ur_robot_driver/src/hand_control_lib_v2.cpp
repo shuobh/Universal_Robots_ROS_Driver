@@ -46,7 +46,7 @@ bool hand_serial::get_error() {
     int rc = readRegisters(1606, 6, tab_reg);
     if (rc == -1) {
         ROS_ERROR("Failed to read error registers: %s", modbus_strerror(errno));
-        return true; // 返回成功
+        return false; // 返回失败
     }
 
     // 解析故障信息并存储到响应中
@@ -72,7 +72,7 @@ bool hand_serial::get_status() {
     int rc = readRegisters(1612, 6, tab_reg);
     if (rc == -1) {
         ROS_ERROR("Failed to read status registers: %s", modbus_strerror(errno));
-        return true; // 返回成功
+        return false; // 返回失败
     }
 
     // 解析状态信息并存储到响应中
@@ -163,7 +163,7 @@ bool hand_serial::get_temp()
     int rc = readRegisters(1618, 6, tab_reg);
     if (rc == -1) {
         ROS_ERROR("Failed to read temperature registers: %s", modbus_strerror(errno));
-        return true; // 返回成功
+        return false; // 返回失败
     }
 
     // 解析温度值并存储到响应中
