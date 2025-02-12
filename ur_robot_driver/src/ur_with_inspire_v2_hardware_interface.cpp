@@ -1300,7 +1300,7 @@ bool URwInspireHardwareInterface::setIO(ur_msgs::SetIORequest& req, ur_msgs::Set
           while(status_error && error_count < 3) {
             status_error = false;
             for(int i = 0; i < 6; i++) {
-              if(inspire_hand_.statusvalue_[i] > 0) {
+              if(inspire_hand_.statusvalue_[i] > 1) {
                 status_error = true;
               }
             }
@@ -1584,7 +1584,7 @@ void URwInspireHardwareInterface::handCommunicationThread(inspire_hand::hand_ser
     inspire_hand.get_status();
     bool status_error = false;
     for(int i = 0; i < 6; i++) {
-      if(inspire_hand.statusvalue_[i] > 0) {
+      if(inspire_hand.statusvalue_[i] > 1) {
         status_error = true;
       }
     }
