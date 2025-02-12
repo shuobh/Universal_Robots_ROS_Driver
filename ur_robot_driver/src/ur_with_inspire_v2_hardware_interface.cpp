@@ -1578,7 +1578,16 @@ void URwInspireHardwareInterface::handCommunicationThread(inspire_hand::hand_ser
   ros::NodeHandle nh;
   ros::Publisher tactile_image_pub = nh.advertise<sensor_msgs::Image>("tactile_image", 1);
   while (ros::ok()) {
-    inspire_hand.get_actual_angle();
+    static int error_count = 0;
+    if(!inspire_hand.get_actual_angle()) {
+      error_count++;
+      if(error_count > 50) {
+        ROS_ERROR("Restarting robot driver due to hand connection issue!");
+        std::system("rosnode kill /robot_state_publisher & rosnode kill /ros_control_controller_spawner & rosnode kill /ros_control_stopped_spawner & rosnode kill /controller_stopper & rosnode kill /ur_with_inspire_hardware_interface/ur_robot_state_helper & rosnode kill /ur_with_inspire_hardware_interface");
+      }
+    } else {
+      error_count = 0;
+    }
     inspire_hand.get_actual_force();
     inspire_hand.get_tactile_data();
     inspire_hand.get_status();
