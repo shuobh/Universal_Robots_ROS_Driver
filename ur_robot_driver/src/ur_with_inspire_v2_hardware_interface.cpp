@@ -349,6 +349,9 @@ bool URwInspireHardwareInterface::init(ros::NodeHandle& root_nh, ros::NodeHandle
   inspire_hand_.initialize(hand_id, hand_ip, hand_port);
   inspire_hand_.set_force_calibration();
   ros::Duration(5).sleep();
+  double init_value[] = {1000, 1000, 1000, 1000, 1000, 1000};
+  inspire_hand_.set_force(init_value);
+  inspire_hand_.set_speed(init_value);
 
   hand_control_thread_ = std::thread(handCommunicationThread, std::ref(inspire_hand_), std::ref(hand_in_freedrive_), std::ref(power_open_), std::ref(power_close_));
 
