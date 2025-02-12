@@ -557,19 +557,23 @@ bool URwInspireHardwareInterface::init(ros::NodeHandle& root_nh, ros::NodeHandle
   set_hand_force_srv_ = robot_hw_nh.advertiseService<bluehill::SetFloats::Request, bluehill::SetFloats::Response>(
       "set_hand_force", [&](bluehill::SetFloats::Request& req, bluehill::SetFloats::Response& resp) {
         double force[6];
+        double speed[6];
         if(req.values.size() == 1) {
           for(int i = 0; i < 6; i++) {
             force[i] = req.values[0];
+            speed[i] = req.values[0] / 3;
           }
         } else if(req.values.size() == 6) {
           for(int i = 0; i < 6; i++) {
             force[i] = req.values[i];
+            speed[i] = req.values[i] / 3;
           }
         } else {
           resp.success = false;
           return true;
         }
         resp.success = inspire_hand_.set_force(force);
+        resp.success = resp.success && inspire_hand_.set_force(speed);
         return true;
       });
 
@@ -1291,10 +1295,23 @@ bool URwInspireHardwareInterface::setIO(ur_msgs::SetIORequest& req, ur_msgs::Set
           power_open_ = true;
           power_close_ = false;
           inspire_hand_.get_status();
-          for(int i = 0; i < 6; i++) {
-            if(inspire_hand_.statusvalue_[i] > 0) {
-              inspire_hand_.set_clear_error();
+          bool status_error = true;
+          int error_count = 0;
+          while(status_error && error_count < 3) {
+            status_error = false;
+            for(int i = 0; i < 6; i++) {
+              if(inspire_hand_.statusvalue_[i] > 0) {
+                status_error = true;
+              }
             }
+            if(status_error) {
+                inspire_hand_.set_clear_error();
+                std::this_thread::sleep_for(std::chrono::milliseconds(500));
+                error_count++;
+            }
+          }
+          if(error_count == 3) {
+            inspire_hand_.safety_mode = ur_dashboard_msgs::SafetyMode::PROTECTIVE_STOP;
           }
       } else {
           power_close_ = true;
@@ -1414,6 +1431,9 @@ void URwInspireHardwareInterface::publishRobotAndSafetyMode()
     if (safety_mode_pub_->trylock())
     {
       safety_mode_pub_->msg_.mode = safety_mode_;
+      if(inspire_hand_.safety_mode == ur_dashboard_msgs::SafetyMode::PROTECTIVE_STOP) {
+        safety_mode_pub_->msg_.mode = ur_dashboard_msgs::SafetyMode::PROTECTIVE_STOP;
+      }
       safety_mode_pub_->unlockAndPublish();
     }
   }
@@ -1561,6 +1581,16 @@ void URwInspireHardwareInterface::handCommunicationThread(inspire_hand::hand_ser
     inspire_hand.get_actual_angle();
     inspire_hand.get_actual_force();
     inspire_hand.get_tactile_data();
+    inspire_hand.get_status();
+    bool status_error = false;
+    for(int i = 0; i < 6; i++) {
+      if(inspire_hand.statusvalue_[i] > 0) {
+        status_error = true;
+      }
+    }
+    if(!status_error) {
+      inspire_hand.safety_mode = ur_dashboard_msgs::SafetyMode::NORMAL;
+    }
     sensor_msgs::ImagePtr ros_image;
     ros_image = cv_bridge::CvImage(std_msgs::Header(), "mono8", inspire_hand.multi_tactile_image_).toImageMsg();
     ros_image.get()->header.stamp = ros::Time::now();

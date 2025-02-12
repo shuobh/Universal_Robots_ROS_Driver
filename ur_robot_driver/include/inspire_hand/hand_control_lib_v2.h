@@ -92,6 +92,7 @@ public:
     double setangle_[6];
     double setangle_cmd_[6];
     double setforce_[6];
+    int32_t safety_mode = 0;
     std::vector<std::vector<std::vector<uint16_t>>> multi_tactile_data_;
     cv::Mat multi_tactile_image_;
 
