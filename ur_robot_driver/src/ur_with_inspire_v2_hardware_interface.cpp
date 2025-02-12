@@ -349,7 +349,7 @@ bool URwInspireHardwareInterface::init(ros::NodeHandle& root_nh, ros::NodeHandle
   inspire_hand_.initialize(hand_id, hand_ip, hand_port);
   inspire_hand_.set_force_calibration();
   ros::Duration(5).sleep();
-  double init_value[] = {1000, 1000, 1000, 1000, 1000, 1000};
+  double init_value[] = {500, 500, 500, 500, 500, 500};
   inspire_hand_.set_force(init_value);
   inspire_hand_.set_speed(init_value);
 
