@@ -573,7 +573,7 @@ bool URwInspireHardwareInterface::init(ros::NodeHandle& root_nh, ros::NodeHandle
           return true;
         }
         resp.success = inspire_hand_.set_force(force);
-        resp.success = resp.success && inspire_hand_.set_force(speed);
+        resp.success = resp.success && inspire_hand_.set_speed(speed);
         return true;
       });
 
