@@ -1617,8 +1617,13 @@ void URwInspireHardwareInterface::handCommunicationThread(inspire_hand::hand_ser
         power_open = false;
       }
     } else if(power_close) {
+      inspire_hand.get_set_force();
       for(int i = 0; i < 5; i++) {
-        inspire_hand.setangle_[i] = inspire_hand::angle_upper_limit[i];
+        if(inspire_hand.curforce_[i] > inspire_hand.setforce_[i] * 0.75) {
+          inspire_hand.setangle_[i] = inspire_hand.curangle_[i] - 0.01;
+        } else {
+          inspire_hand.setangle_[i] = inspire_hand::angle_upper_limit[i];
+        }
       }
       if(in_freedrive) {
         power_close = false;
