@@ -1560,13 +1560,16 @@ void URwInspireHardwareInterface::handCommunicationThread(inspire_hand::hand_ser
 
     // Protection
     static double step = 0.1;
-    for(int i = 0; i < 6; i++) {
+    for(int i = 0; i < 5; i++) {
       if(inspire_hand.curforce_[i] > 1200) {
         inspire_hand.setangle_[i] = inspire_hand.curangle_[i] - step;
       }
     }
-    if(inspire_hand.curforce_[5] < -1200) {
+    if(inspire_hand.curforce_[5] < -800) {
       inspire_hand.setangle_[5] = inspire_hand.curangle_[5] + step;
+    }
+    if(inspire_hand.curforce_[5] > 800) {
+      inspire_hand.setangle_[5] = inspire_hand.curangle_[5] - step;
     }
     inspire_hand.set_angle(inspire_hand.setangle_);
     std::this_thread::sleep_for(std::chrono::milliseconds(1));
