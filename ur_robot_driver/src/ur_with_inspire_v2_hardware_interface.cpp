@@ -1619,11 +1619,7 @@ void URwInspireHardwareInterface::handCommunicationThread(inspire_hand::hand_ser
     } else if(power_close) {
       inspire_hand.get_set_force();
       for(int i = 0; i < 5; i++) {
-        if(inspire_hand.curforce_[i] > inspire_hand.setforce_[i] * 0.75) {
-          inspire_hand.setangle_[i] = inspire_hand.curangle_[i] - 0.01;
-        } else {
-          inspire_hand.setangle_[i] = inspire_hand::angle_upper_limit[i];
-        }
+        inspire_hand.setangle_[i] = inspire_hand::angle_upper_limit[i];
       }
       if(in_freedrive) {
         power_close = false;
@@ -1649,6 +1645,17 @@ void URwInspireHardwareInterface::handCommunicationThread(inspire_hand::hand_ser
       for(int i = 0; i < 6; i++) {
         inspire_hand.setangle_[i] = inspire_hand.setangle_cmd_[i];
       }
+    }
+
+    // Protection
+    static int step = 0.01;
+    for(int i = 0; i < 6; i++) {
+      if(inspire_hand.curforce_[i] > 2000) {
+        inspire_hand.setangle_[i] = inspire_hand.curangle_[i] - step;
+      }
+    }
+    if(inspire_hand.curforce_[5] < -2000) {
+      inspire_hand.setangle_[5] = inspire_hand.curangle_[5] + step;
     }
     inspire_hand.set_angle(inspire_hand.setangle_);
     std::this_thread::sleep_for(std::chrono::milliseconds(1));
