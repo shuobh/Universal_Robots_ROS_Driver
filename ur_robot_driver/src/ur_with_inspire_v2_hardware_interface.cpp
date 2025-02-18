@@ -349,9 +349,12 @@ bool URwInspireHardwareInterface::init(ros::NodeHandle& root_nh, ros::NodeHandle
   inspire_hand_.initialize(hand_id, hand_ip, hand_port);
   inspire_hand_.set_force_calibration();
   ros::Duration(5).sleep();
-  double init_value[] = {500, 500, 500, 500, 500, 500};
-  inspire_hand_.set_force(init_value);
-  inspire_hand_.set_speed(init_value);
+  for(int i = 0; i < 6; i++) {
+    inspire_hand_.setspeed_[i] = 500;
+    inspire_hand_.setforce_[i] = 500;
+  }
+  inspire_hand_.set_force(inspire_hand_.setforce_);
+  inspire_hand_.set_speed(inspire_hand_.setspeed_);
 
   hand_control_thread_ = std::thread(handCommunicationThread, std::ref(inspire_hand_), std::ref(hand_in_freedrive_), std::ref(power_open_), std::ref(power_close_));
 
@@ -559,24 +562,22 @@ bool URwInspireHardwareInterface::init(ros::NodeHandle& root_nh, ros::NodeHandle
   // Set hand force through a ROS service
   set_hand_force_srv_ = robot_hw_nh.advertiseService<bluehill::SetFloats::Request, bluehill::SetFloats::Response>(
       "set_hand_force", [&](bluehill::SetFloats::Request& req, bluehill::SetFloats::Response& resp) {
-        double force[6];
-        double speed[6];
         if(req.values.size() == 1) {
           for(int i = 0; i < 6; i++) {
-            force[i] = req.values[0];
-            speed[i] = std::min(req.values[0], 1000.0);
+            inspire_hand_.setforce_[i] = req.values[0];
+            inspire_hand_.setspeed_[i] = std::min(req.values[0], 1000.0);
           }
         } else if(req.values.size() == 6) {
           for(int i = 0; i < 6; i++) {
-            force[i] = req.values[i];
-            speed[i] = std::min(req.values[i], 1000.0);
+            inspire_hand_.setforce_[i] = req.values[i];
+            inspire_hand_.setspeed_[i] = std::min(req.values[i], 1000.0);
           }
         } else {
           resp.success = false;
           return true;
         }
-        resp.success = inspire_hand_.set_force(force);
-        resp.success = resp.success && inspire_hand_.set_speed(speed);
+        resp.success = inspire_hand_.set_force(inspire_hand_.setforce_);
+        resp.success = resp.success && inspire_hand_.set_speed(inspire_hand_.setspeed_);
         return true;
       });
 
@@ -1649,9 +1650,12 @@ void URwInspireHardwareInterface::handCommunicationThread(inspire_hand::hand_ser
 
     // Protection
     static double step = 0.1;
+    auto speed = inspire_hand.setspeed_;
     for(int i = 0; i < 5; i++) {
       if(inspire_hand.curforce_[i] > 1200) {
         inspire_hand.setangle_[i] = inspire_hand.curangle_[i] - step;
+      } else if(inspire_hand.curforce_[i] > 200) {
+        speed[i] *= (inspire_hand.curforce_[i] - 200) / 1000.0;
       }
     }
     if(inspire_hand.curforce_[5] < -800) {
@@ -1660,6 +1664,7 @@ void URwInspireHardwareInterface::handCommunicationThread(inspire_hand::hand_ser
     if(inspire_hand.curforce_[5] > 800) {
       inspire_hand.setangle_[5] = inspire_hand.curangle_[5] - step;
     }
+    inspire_hand.set_speed(speed);
     inspire_hand.set_angle(inspire_hand.setangle_);
     std::this_thread::sleep_for(std::chrono::milliseconds(1));
   }
