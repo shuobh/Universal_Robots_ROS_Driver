@@ -347,11 +347,11 @@ bool URwInspireHardwareInterface::init(ros::NodeHandle& root_nh, ros::NodeHandle
 
   // initialize the inspire hand
   inspire_hand_.initialize(hand_id, hand_ip, hand_port);
-  inspire_hand_.set_force_calibration();
+  //inspire_hand_.set_force_calibration();
   ros::Duration(5).sleep();
   for(int i = 0; i < 6; i++) {
     inspire_hand_.setspeed_[i] = 500;
-    inspire_hand_.setforce_[i] = 500;
+    inspire_hand_.setforce_[i] = 2000;
   }
   inspire_hand_.set_force(inspire_hand_.setforce_);
   inspire_hand_.set_speed(inspire_hand_.setspeed_);
@@ -1649,42 +1649,39 @@ void URwInspireHardwareInterface::handCommunicationThread(inspire_hand::hand_ser
     }
 
     // Protection
-    static double step = 0.05;
-    double speed[6];
-    speed[5] = inspire_hand.setspeed_[5];
+    static const double step = 0.005;
+    static const int protection_count_threshold = 10;
     static std::vector<int> protection_count(6, 0);
     for(int i = 0; i < 5; i++) {
-      speed[i] = inspire_hand.setspeed_[i];
       if(inspire_hand.curforce_[i] > 1500) {
-        if(protection_count[i] > 3) {
+        if(protection_count[i] > protection_count_threshold) {
           inspire_hand.setangle_[i] = inspire_hand.curangle_[i] - step;
+          ROS_ERROR_STREAM("Correcting for " << i);
         } else {
           protection_count[i]++;
         }
       } else {
         protection_count[i] = 0;
-        if(inspire_hand.curforce_[i] > 200) {
-          speed[i] *= (1.0 - inspire_hand.curforce_[i] / 1500.0);
+        if(inspire_hand.curforce_[i] > 500) {
+          inspire_hand.setangle_[i] = inspire_hand.curangle_[i];
+        } else if(inspire_hand.curforce_[i] > 200) {
+          inspire_hand.setangle_[i] = inspire_hand.curangle_[i] + step;
         }
       }
     }
-    if(inspire_hand.curforce_[5] < -800) {
-      if(protection_count[5] > 3) {
-        inspire_hand.setangle_[5] = inspire_hand.curangle_[5] + step;
-      } else {
-        protection_count[5]++;
-      }
-    }
-    else if(inspire_hand.curforce_[5] > 800) {
-      if(protection_count[5] > 3) {
-        inspire_hand.setangle_[5] = inspire_hand.curangle_[5] - step;
+    if(fabs(inspire_hand.curforce_[5]) > 1200) {
+      if(protection_count[5] > protection_count_threshold) {
+        inspire_hand.setangle_[5] = inspire_hand.curangle_[5] - inspire_hand.curforce_[5] / fabs(inspire_hand.curforce_[5]) * step;
       } else {
         protection_count[5]++;
       }
     } else {
         protection_count[5] = 0;
+        if(fabs(inspire_hand.curforce_[5]) > 400) {
+          inspire_hand.setangle_[5] = inspire_hand.curangle_[5];
+        }
     }
-    inspire_hand.set_speed(speed);
+
     inspire_hand.set_angle(inspire_hand.setangle_);
     std::this_thread::sleep_for(std::chrono::milliseconds(1));
   }
