@@ -1652,10 +1652,13 @@ void URwInspireHardwareInterface::handCommunicationThread(inspire_hand::hand_ser
     static const double step = 0.005;
     static const int protection_count_threshold = 10;
     static std::vector<int> protection_count(6, 0);
+    double set_angle[6];
     for(int i = 0; i < 5; i++) {
+      set_angle[i] = inspire_hand.setangle_[i];
       if(inspire_hand.curforce_[i] > 1500) {
         if(protection_count[i] > protection_count_threshold) {
           inspire_hand.setangle_[i] = inspire_hand.curangle_[i] - step;
+          set_angle[i] = inspire_hand.curangle_[i] - step;
           ROS_ERROR_STREAM("Correcting for " << i);
         } else {
           protection_count[i]++;
@@ -1663,22 +1666,31 @@ void URwInspireHardwareInterface::handCommunicationThread(inspire_hand::hand_ser
       } else {
         protection_count[i] = 0;
         if(inspire_hand.curforce_[i] > 500) {
-          inspire_hand.setangle_[i] = inspire_hand.curangle_[i];
+          if(!power_open || !in_freedrive) {
+            inspire_hand.setangle_[i] = inspire_hand.curangle_[i];
+            set_angle[i] = -1;
+          }
         } else if(inspire_hand.curforce_[i] > 200) {
           inspire_hand.setangle_[i] = inspire_hand.curangle_[i] + step;
+          set_angle[i] = inspire_hand.curangle_[i] - step;
         }
       }
     }
     if(fabs(inspire_hand.curforce_[5]) > 1200) {
+      set_angle[5] = inspire_hand.setangle_[5];
       if(protection_count[5] > protection_count_threshold) {
         inspire_hand.setangle_[5] = inspire_hand.curangle_[5] - inspire_hand.curforce_[5] / fabs(inspire_hand.curforce_[5]) * step;
+        set_angle[5] = inspire_hand.setangle_[5];
       } else {
         protection_count[5]++;
       }
     } else {
         protection_count[5] = 0;
         if(fabs(inspire_hand.curforce_[5]) > 400) {
-          inspire_hand.setangle_[5] = inspire_hand.curangle_[5];
+          if(!power_open || !in_freedrive) {
+            inspire_hand.setangle_[5] = inspire_hand.curangle_[5];
+            set_angle[5] = -1;
+          }
         }
     }
 

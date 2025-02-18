@@ -363,7 +363,11 @@ bool hand_serial::set_angle(const double angle[6]) {
     ROS_DEBUG("hand: set angle");
     double encoder[6];
     for(int i = 0; i < 6; i++) {
-        encoder[i] = (1000.0 - 1000.0 * angle[i] / (angle_upper_limit[i] - angle_lower_limit[i]));
+        if(angle[i] == -1) {
+            encoder[i] = -1;
+        } else {
+            encoder[i] = (1000.0 - 1000.0 * angle[i] / (angle_upper_limit[i] - angle_lower_limit[i]));
+        }
     }
     if(validate_values(encoder, -1, 1000)) {
         return writeMultipleRegisters(1486, encoder, 6)==0; // 返回成功
