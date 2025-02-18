@@ -347,11 +347,11 @@ bool URwInspireHardwareInterface::init(ros::NodeHandle& root_nh, ros::NodeHandle
 
   // initialize the inspire hand
   inspire_hand_.initialize(hand_id, hand_ip, hand_port);
-  //inspire_hand_.set_force_calibration();
+  inspire_hand_.set_force_calibration();
   ros::Duration(5).sleep();
   for(int i = 0; i < 6; i++) {
     inspire_hand_.setspeed_[i] = 500;
-    inspire_hand_.setforce_[i] = 2000;
+    inspire_hand_.setforce_[i] = 500;
   }
   inspire_hand_.set_force(inspire_hand_.setforce_);
   inspire_hand_.set_speed(inspire_hand_.setspeed_);
@@ -1649,34 +1649,33 @@ void URwInspireHardwareInterface::handCommunicationThread(inspire_hand::hand_ser
     }
 
     // Protection
-    static const double step = 0.005;
-    static const int protection_count_threshold = 10;
+    static const double step = 0.01;
+    static const int protection_count_threshold = 5;
     static std::vector<int> protection_count(6, 0);
     double set_angle[6];
     for(int i = 0; i < 5; i++) {
       set_angle[i] = inspire_hand.setangle_[i];
-      if(inspire_hand.curforce_[i] > 1500) {
+      if(inspire_hand.curforce_[i] > 1200) {
         if(protection_count[i] > protection_count_threshold) {
           inspire_hand.setangle_[i] = inspire_hand.curangle_[i] - step;
           set_angle[i] = inspire_hand.curangle_[i] - step;
-          ROS_ERROR_STREAM("Correcting for " << i);
         } else {
           protection_count[i]++;
         }
       } else {
         protection_count[i] = 0;
-        if(inspire_hand.curforce_[i] > 500) {
-          if(!power_open || !in_freedrive) {
+        if(inspire_hand.curforce_[i] > inspire_hand.setforce_[i] * 0.8 || fabs(inspire_hand.curangle_[i] - inspire_hand::angle_upper_limit[i]) < 0.05) {
+          if(!power_open && !in_freedrive) {
             inspire_hand.setangle_[i] = inspire_hand.curangle_[i];
             set_angle[i] = -1;
           }
-        } else if(inspire_hand.curforce_[i] > 200) {
-          inspire_hand.setangle_[i] = inspire_hand.curangle_[i] + step;
-          set_angle[i] = inspire_hand.curangle_[i] - step;
+        } else if(inspire_hand.curforce_[i] > inspire_hand.setforce_[i] * 0.4) {
+          inspire_hand.setangle_[i] = inspire_hand.curangle_[i] + step / 2.0;
+          set_angle[i] = inspire_hand.curangle_[i] + step / 2.0;
         }
       }
     }
-    if(fabs(inspire_hand.curforce_[5]) > 1200) {
+    if(fabs(inspire_hand.curforce_[5]) > 800) {
       set_angle[5] = inspire_hand.setangle_[5];
       if(protection_count[5] > protection_count_threshold) {
         inspire_hand.setangle_[5] = inspire_hand.curangle_[5] - inspire_hand.curforce_[5] / fabs(inspire_hand.curforce_[5]) * step;
@@ -1686,15 +1685,22 @@ void URwInspireHardwareInterface::handCommunicationThread(inspire_hand::hand_ser
       }
     } else {
         protection_count[5] = 0;
-        if(fabs(inspire_hand.curforce_[5]) > 400) {
-          if(!power_open || !in_freedrive) {
-            inspire_hand.setangle_[5] = inspire_hand.curangle_[5];
-            set_angle[5] = -1;
-          }
+        if(!power_open && !in_freedrive) {
+          inspire_hand.setangle_[5] = inspire_hand.curangle_[5];
+          set_angle[5] = -1;
         }
     }
 
-    inspire_hand.set_angle(inspire_hand.setangle_);
+    bool move_update = false;
+    for(int i = 0; i < 6; i++) {
+      if(set_angle[i] != -1) {
+        move_update = true;
+        break;
+      }
+    }
+    if(move_update) {
+      inspire_hand.set_angle(set_angle);
+    }
     std::this_thread::sleep_for(std::chrono::milliseconds(1));
   }
 }
