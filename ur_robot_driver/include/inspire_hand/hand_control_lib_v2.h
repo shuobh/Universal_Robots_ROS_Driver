@@ -69,11 +69,7 @@ public:
     bool set_current_limit(const double current_limit[6]);
     
     bool set_reset_parameters();
-                     
-    int writeMultipleRegisters(int start_addr, const uint16_t* values, int num_values);
-    int getRegisterValue(int reg_addr) {
-        return readRegister(reg_addr); // 通过公有方法调用私有方法
-    }
+
     cv::Mat convert_tactile_data_to_image(const std::vector<std::vector<std::vector<uint16_t>>>& multi_tactile_data, int rows=256, int cols=256);
     std::vector<std::vector<uint16_t>> resize_tactile_data(uint16_t *v, int rows, int cols);
     bool get_tactile_data();
@@ -110,11 +106,11 @@ private:
     int readRegister(int reg_addr);
     int readRegisters(int reg_addr, int num_registers, uint16_t *tab_reg);
     int writeRegister(int reg_addr, int value);
-
+    int writeMultipleRegisters(int start_addr, const uint16_t *values, int num_values);
+    int writeMultipleRegisters(int start_addr, const double *values, int num_values);
 
     bool validate_values(const double values[6], double lower_limit, double upper_limit);
-    bool set_reg(const double values[6], int pin);
-    void get_reg(double (&values)[6], int pin);
+    bool validate_values(const uint16_t values[6], uint16_t lower_limit, uint16_t upper_limit);
     bool save_setting();
 
 };

@@ -30,12 +30,6 @@ void hand_serial::initialize(int hand_id, std::string ip_address, int port) {
     ROS_DEBUG("Connected to Modbus server at %s:%d", ip_address_.c_str(), port_);
 }
 
-void hand_serial::get_reg(double (&values)[6], int pin) {
-    for(int i = 0; i < 6; i++) {
-        values[i] = readRegister(pin + i * 2);
-    }
-}
-
 // Callback to get error information
 bool hand_serial::get_error() {
     ROS_DEBUG("Hand: Get error request received");
@@ -93,10 +87,15 @@ bool hand_serial::get_actual_force() {
     ROS_DEBUG("Hand: Get Force Actual values request received");
 
     // 直接读取各个手指的实际受力值
-    double force[6];
-    get_reg(force, 1582); // 从寄存器 1582 开始读取
-    for(int i = 0; i<6; i++)
-        curforce_[i] = force[i]>32768?force[i]-65536:force[i];
+    uint16_t tab_reg[6];
+    int rc = readRegisters(1582, 6, tab_reg);
+    if (rc == -1) {
+        ROS_ERROR("Failed to read error registers: %s", modbus_strerror(errno));
+        return false; // 返回失败
+    }
+    for(int i = 0; i<6; i++) {
+        curforce_[i] = tab_reg[i]>32768?tab_reg[i]-65536:tab_reg[i];
+    }
 
     return validate_values(curforce_, -4000, 4000);
 }
@@ -104,8 +103,15 @@ bool hand_serial::get_actual_force() {
 bool hand_serial::get_actual_current() {
     ROS_DEBUG("Hand: Get Current values request received");
 
-    // 直接读取各个电缸的电流值
-    get_reg(current_, 1594); // 从寄存器 1594 开始读取
+    uint16_t tab_reg[6];
+    int rc = readRegisters(1594, 6, tab_reg);
+    if (rc == -1) {
+        ROS_ERROR("Failed to read error registers: %s", modbus_strerror(errno));
+        return false; // 返回失败
+    }
+    for(int i = 0; i < 6; i++) {
+        current_[i] = static_cast<double>(tab_reg[i]);
+    }
 
     return validate_values(current_, 0, 1000);
 }
@@ -113,16 +119,17 @@ bool hand_serial::get_actual_current() {
 bool hand_serial::get_set_angle() {
     ROS_DEBUG("Hand: Get Angle Set values request received");
 
-    double angle[6];
-    // 直接读取各个手指的上电初始角度
-    get_reg(angle, 1486); // 从寄存器 1486 开始读取
-
-    if (!validate_values(angle, 0, 1000)) {
+    uint16_t tab_reg[6];
+    int rc = readRegisters(1486, 6, tab_reg);
+    if (rc == -1) {
+        ROS_ERROR("Failed to read error registers: %s", modbus_strerror(errno));
+        return false; // 返回失败
+    }
+    if (!validate_values(tab_reg, 0, 1000)) {
         return false;
     }
-
     for(int i = 0; i < 6; i++) {
-        setangle_[i] = (1000.0 - angle[i]) / 1000.0 * (angle_upper_limit[i] - angle_lower_limit[i]);
+        setangle_[i] = (1000.0 - tab_reg[i]) / 1000.0 * (angle_upper_limit[i] - angle_lower_limit[i]);
     }
     return true;
 }
@@ -130,16 +137,17 @@ bool hand_serial::get_set_angle() {
 bool hand_serial::get_actual_angle() {
     ROS_DEBUG("Hand: Get Angle Actual values request received");
 
-    double angle[6];
-    // 直接读取各个手指的上电初始角度
-    get_reg(angle, 1546); // 从寄存器 1486 开始读取
-
-    if (!validate_values(angle, 0, 1000)) {
+    uint16_t tab_reg[6];
+    int rc = readRegisters(1546, 6, tab_reg);
+    if (rc == -1) {
+        ROS_ERROR("Failed to read error registers: %s", modbus_strerror(errno));
+        return false; // 返回失败
+    }
+    if (!validate_values(tab_reg, 0, 1000)) {
         return false;
     }
-
     for(int i = 0; i < 6; i++) {
-        curangle_[i] = (1000.0 - angle[i]) / 1000.0 * (angle_upper_limit[i] - angle_lower_limit[i]);
+        curangle_[i] = (1000.0 - tab_reg[i]) / 1000.0 * (angle_upper_limit[i] - angle_lower_limit[i]);
     }
     return true;
 }
@@ -148,7 +156,15 @@ bool hand_serial::get_set_force() {
     ROS_DEBUG("Hand: Get Force Set values request received");
 
     // 直接读取各个手指的力控设置值
-    get_reg(setforce_, 1498); // 从寄存器 1498 开始读取
+    uint16_t tab_reg[6];
+    int rc = readRegisters(1498, 6, tab_reg);
+    if (rc == -1) {
+        ROS_ERROR("Failed to read error registers: %s", modbus_strerror(errno));
+        return false; // 返回失败
+    }
+    for(int i = 0; i < 6; i++) {
+        setforce_[i] = static_cast<double>(tab_reg[i]);
+    }
 
     return validate_values(setforce_, 0, 3000); // 检查读取的值是否有效
 }
@@ -184,7 +200,15 @@ bool hand_serial::get_set_position() {
     ROS_DEBUG("Hand: Get Position Set values request received");
 
     // 直接读取各个手指的驱动器位置设置值
-    get_reg(setpos_, 1474); // 从寄存器 1474 开始读取
+    uint16_t tab_reg[6];
+    int rc = readRegisters(1474, 6, tab_reg);
+    if (rc == -1) {
+        ROS_ERROR("Failed to read error registers: %s", modbus_strerror(errno));
+        return false; // 返回失败
+    }
+    for(int i = 0; i < 6; i++) {
+        setpos_[i] = static_cast<double>(tab_reg[i]);
+    }
 
     return validate_values(setpos_, 0, 2000); // 检查读取的值是否有效
 }
@@ -193,8 +217,15 @@ bool hand_serial::get_actual_position() {
     ROS_DEBUG("Hand: Get Position Actual values request received");
 
     // 直接读取各个手指的驱动器实际位置值
-    get_reg(curpos_, 1534); // 从寄存器 1534 开始读取
-
+    uint16_t tab_reg[6];
+    int rc = readRegisters(1534, 6, tab_reg);
+    if (rc == -1) {
+        ROS_ERROR("Failed to read error registers: %s", modbus_strerror(errno));
+        return false; // 返回失败
+    }
+    for(int i = 0; i < 6; i++) {
+        curpos_[i] = static_cast<double>(tab_reg[i]);
+    }
     return validate_values(curpos_, 0, 2000); // 检查读取的值是否有效
 }
 
@@ -281,18 +312,15 @@ bool hand_serial::validate_values(const double values[6], double lower_limit, do
     return true; // 返回成功
 }
 
-bool hand_serial::set_reg(const double values[6], int pin) {
-    // 将位置值写入 Modbus 寄存器
-    bool status = true;
+bool hand_serial::validate_values(const uint16_t values[6], uint16_t lower_limit, uint16_t upper_limit) {
+    // 检查请求中的位置参数是否合法
     for(int i = 0; i < 6; i++) {
-        status = status && (writeRegister(pin + i * 2, values[i]) == 0);
+        if (values[i] < lower_limit || values[i] > upper_limit) {
+            ROS_WARN("Hand: value error! Values (%f) must be >= %f and <= %f.", values[i], lower_limit, upper_limit);
+            return false; // 返回失败
+        }
     }
-    // 读取某个寄存器的值（位置0）
-    int read_value = readRegister(pin);
-    if (read_value != -1) {
-        ROS_DEBUG("Read value: %d", read_value);
-    }
-    return status; // 返回成功
+    return true; // 返回成功
 }
 
 bool hand_serial::save_setting() {
@@ -310,7 +338,7 @@ bool hand_serial::save_setting() {
 bool hand_serial::set_position(const double pos[6]) {
     ROS_DEBUG("hand: set pos");
     if(validate_values(pos, 0, 2000)) {
-        return set_reg(pos, 1474); // 返回成功
+        return writeMultipleRegisters(1474, pos, 6)==0;
     }
     return false; // 返回失败
 }
@@ -319,13 +347,13 @@ bool hand_serial::set_speed(const double speed[6]) {
     ROS_DEBUG("hand: set speed");
 
     if(validate_values(speed, 0, 1000)) {
-        return set_reg(speed, 1522); // 返回成功
+        return writeMultipleRegisters(1522, speed, 6)==0;
     }
 }
 
 bool hand_serial::set_default_speed(const double speed[6]) {
     ROS_DEBUG("hand: set default speed");
-    if(validate_values(speed, 0, 1000) && set_reg(speed, 1032)) {
+    if(validate_values(speed, 0, 1000) && writeMultipleRegisters(1032, speed, 6)==0) {
         return save_setting(); // 返回成功
     }
     return false; // 返回失败
@@ -338,7 +366,7 @@ bool hand_serial::set_angle(const double angle[6]) {
         encoder[i] = (1000.0 - 1000.0 * angle[i] / (angle_upper_limit[i] - angle_lower_limit[i]));
     }
     if(validate_values(encoder, -1, 1000)) {
-        return set_reg(encoder, 1486); // 返回成功
+        return writeMultipleRegisters(1486, encoder, 6)==0; // 返回成功
     }
     return false; // 返回失败
 }
@@ -347,7 +375,7 @@ bool hand_serial::set_force(const double force[6]) {
     ROS_DEBUG("hand: set force");
 
     if(validate_values(force, 0, 3000)) {
-        return set_reg(force, 1498); // 返回成功
+        return writeMultipleRegisters(1498, force, 6)==0; // 返回成功
     }
     return false; // 返回失败
 }
@@ -355,7 +383,7 @@ bool hand_serial::set_force(const double force[6]) {
 bool hand_serial::set_default_force(const double force[6]) {
     ROS_DEBUG("Hand: Set Default Force request received");
 
-    if(validate_values(force, 0, 3000) && set_reg(force, 1044)) {
+    if(validate_values(force, 0, 3000) && writeMultipleRegisters(1044, force, 6)==0) {
         return save_setting(); // 返回成功
     }
     return false; // 返回失败
@@ -394,7 +422,7 @@ bool hand_serial::set_current_limit(const double current_limit[6]) {
     ROS_DEBUG("Hand: Set Current Limit request received");
 
     if(validate_values(current_limit, 0, 1500)) {
-        return set_reg(current_limit, 1020); // 返回成功
+        return writeMultipleRegisters(1020, current_limit, 6)==0;
     }
     return false; // 返回失败
 }
@@ -610,6 +638,15 @@ int hand_serial::writeMultipleRegisters(int start_addr, const uint16_t *values, 
         return -1; // Error
     }
     return 0; // Success
+}
+
+// Write multiple registers (optional, if needed)
+int hand_serial::writeMultipleRegisters(int start_addr, const double *values, int num_values) {
+    uint16_t tab_reg[6];
+    for(int i = 0; i < 6; i++) {
+        tab_reg[i] = static_cast<uint16_t>(values[i]);
+    }
+    return writeMultipleRegisters(start_addr, tab_reg, num_values); // Success
 }
 }
 #endif
