@@ -1649,13 +1649,15 @@ void URwInspireHardwareInterface::handCommunicationThread(inspire_hand::hand_ser
     }
 
     // Protection
-    static double step = 0.1;
-    auto speed = inspire_hand.setspeed_;
+    static double step = 0.05;
+    double speed[6];
+    speed[5] = inspire_hand.setspeed_[5];
     for(int i = 0; i < 5; i++) {
-      if(inspire_hand.curforce_[i] > 1200) {
+      speed[i] = inspire_hand.setspeed_[i];
+      if(inspire_hand.curforce_[i] > 1500) {
         inspire_hand.setangle_[i] = inspire_hand.curangle_[i] - step;
       } else if(inspire_hand.curforce_[i] > 200) {
-        speed[i] *= (inspire_hand.curforce_[i] - 200) / 1000.0;
+        speed[i] *= (1.0 - inspire_hand.curforce_[i] / 1500.0);
       }
     }
     if(inspire_hand.curforce_[5] < -800) {

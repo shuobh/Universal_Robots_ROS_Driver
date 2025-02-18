@@ -94,7 +94,7 @@ bool hand_serial::get_actual_force() {
         return false; // 返回失败
     }
     for(int i = 0; i<6; i++) {
-        curforce_[i] = tab_reg[i]>32768?tab_reg[i]-65536:tab_reg[i];
+        curforce_[i] = static_cast<double>(tab_reg[i]>32768?tab_reg[i]-65536:tab_reg[i]);
     }
 
     return validate_values(curforce_, -4000, 4000);
