@@ -1652,19 +1652,37 @@ void URwInspireHardwareInterface::handCommunicationThread(inspire_hand::hand_ser
     static double step = 0.05;
     double speed[6];
     speed[5] = inspire_hand.setspeed_[5];
+    static std::vector<int> protection_count(6, 0);
     for(int i = 0; i < 5; i++) {
       speed[i] = inspire_hand.setspeed_[i];
       if(inspire_hand.curforce_[i] > 1500) {
-        inspire_hand.setangle_[i] = inspire_hand.curangle_[i] - step;
-      } else if(inspire_hand.curforce_[i] > 200) {
-        speed[i] *= (1.0 - inspire_hand.curforce_[i] / 1500.0);
+        if(protection_count[i] > 3) {
+          inspire_hand.setangle_[i] = inspire_hand.curangle_[i] - step;
+        } else {
+          protection_count[i]++;
+        }
+      } else {
+        protection_count[i] = 0;
+        if(inspire_hand.curforce_[i] > 200) {
+          speed[i] *= (1.0 - inspire_hand.curforce_[i] / 1500.0);
+        }
       }
     }
     if(inspire_hand.curforce_[5] < -800) {
-      inspire_hand.setangle_[5] = inspire_hand.curangle_[5] + step;
+      if(protection_count[5] > 3) {
+        inspire_hand.setangle_[5] = inspire_hand.curangle_[5] + step;
+      } else {
+        protection_count[5]++;
+      }
     }
-    if(inspire_hand.curforce_[5] > 800) {
-      inspire_hand.setangle_[5] = inspire_hand.curangle_[5] - step;
+    else if(inspire_hand.curforce_[5] > 800) {
+      if(protection_count[5] > 3) {
+        inspire_hand.setangle_[5] = inspire_hand.curangle_[5] - step;
+      } else {
+        protection_count[5]++;
+      }
+    } else {
+        protection_count[5] = 0;
     }
     inspire_hand.set_speed(speed);
     inspire_hand.set_angle(inspire_hand.setangle_);
