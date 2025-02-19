@@ -1656,7 +1656,7 @@ void URwInspireHardwareInterface::handCommunicationThread(inspire_hand::hand_ser
     set_angle[5] = inspire_hand.setangle_[5];
     for(int i = 0; i < 5; i++) {
       set_angle[i] = inspire_hand.setangle_[i];
-      if(inspire_hand.curforce_[i] > 1200) {
+      if(inspire_hand.curforce_[i] > 1000) {
         if(protection_count[i] > protection_count_threshold) {
           inspire_hand.setangle_[i] = inspire_hand.curangle_[i] - step;
           set_angle[i] = inspire_hand.curangle_[i] - step;
