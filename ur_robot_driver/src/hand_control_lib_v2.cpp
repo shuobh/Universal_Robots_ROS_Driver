@@ -305,7 +305,7 @@ bool hand_serial::validate_values(const double values[6], double lower_limit, do
     // 检查请求中的位置参数是否合法
     for(int i = 0; i < 6; i++) {
         if (values[i] < lower_limit || values[i] > upper_limit) {
-            ROS_WARN("Hand: value error! Values (%f) must be >= %f and <= %f.", values[i], lower_limit, upper_limit);
+            ROS_WARN("Hand: value error! Values (%f for %d) must be >= %f and <= %f.", values[i], i, lower_limit, upper_limit);
             return false; // 返回失败
         }
     }
@@ -316,7 +316,7 @@ bool hand_serial::validate_values(const uint16_t values[6], uint16_t lower_limit
     // 检查请求中的位置参数是否合法
     for(int i = 0; i < 6; i++) {
         if (values[i] < lower_limit || values[i] > upper_limit) {
-            ROS_WARN("Hand: value error! Values (%f) must be >= %f and <= %f.", values[i], lower_limit, upper_limit);
+            ROS_WARN("Hand: value error! Values (%d for %d) must be >= %d and <= %d.", values[i], i, lower_limit, upper_limit);
             return false; // 返回失败
         }
     }

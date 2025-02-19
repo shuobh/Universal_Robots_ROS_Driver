@@ -1653,6 +1653,7 @@ void URwInspireHardwareInterface::handCommunicationThread(inspire_hand::hand_ser
     static const int protection_count_threshold = 5;
     static std::vector<int> protection_count(6, 0);
     double set_angle[6];
+    set_angle[5] = inspire_hand.setangle_[5];
     for(int i = 0; i < 5; i++) {
       set_angle[i] = inspire_hand.setangle_[i];
       if(inspire_hand.curforce_[i] > 1200) {
