@@ -1649,7 +1649,7 @@ void URwInspireHardwareInterface::handCommunicationThread(inspire_hand::hand_ser
     }
 
     // Protection
-    static const double step = 0.01;
+    static const double step = 0.05;
     static const int protection_count_threshold = 5;
     static std::vector<int> protection_count(6, 0);
     double set_angle[6];
@@ -1671,8 +1671,8 @@ void URwInspireHardwareInterface::handCommunicationThread(inspire_hand::hand_ser
             set_angle[i] = -1;
           }
         } else if(inspire_hand.curforce_[i] > inspire_hand.setforce_[i] * 0.4) {
-          inspire_hand.setangle_[i] = inspire_hand.curangle_[i] + step / 2.0;
-          set_angle[i] = inspire_hand.curangle_[i] + step / 2.0;
+          inspire_hand.setangle_[i] = inspire_hand.curangle_[i] + step / 5.0;
+          set_angle[i] = inspire_hand.curangle_[i] + step / 5.0;
         }
       }
     }

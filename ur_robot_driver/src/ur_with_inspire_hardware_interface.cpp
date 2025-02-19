@@ -1559,19 +1559,59 @@ void URwInspireHardwareInterface::handCommunicationThread(inspire_hand::hand_ser
     }
 
     // Protection
-    static double step = 0.1;
+    static const double step = 0.05;
+    static const int protection_count_threshold = 5;
+    static std::vector<int> protection_count(6, 0);
+    double set_angle[6];
+    set_angle[5] = inspire_hand.setangle_[5];
     for(int i = 0; i < 5; i++) {
-      if(inspire_hand.curforce_[i] > 1200) {
-        inspire_hand.setangle_[i] = inspire_hand.curangle_[i] - step;
+      set_angle[i] = inspire_hand.setangle_[i];
+      if(inspire_hand.curforce_[i] > 1000) {
+        if(protection_count[i] > protection_count_threshold) {
+          inspire_hand.setangle_[i] = inspire_hand.curangle_[i] - step;
+          set_angle[i] = inspire_hand.curangle_[i] - step;
+        } else {
+          protection_count[i]++;
+        }
+      } else {
+        protection_count[i] = 0;
+        if(inspire_hand.curforce_[i] > inspire_hand.setforce_[i] * 0.8 || fabs(inspire_hand.curangle_[i] - inspire_hand::angle_upper_limit[i]) < 0.05) {
+          if(!power_open && !in_freedrive) {
+            inspire_hand.setangle_[i] = inspire_hand.curangle_[i];
+            set_angle[i] = -1;
+          }
+        } else if(inspire_hand.curforce_[i] > inspire_hand.setforce_[i] * 0.4) {
+          inspire_hand.setangle_[i] = inspire_hand.curangle_[i] + step / 5.0;
+          set_angle[i] = inspire_hand.curangle_[i] + step / 5.0;
+        }
       }
     }
-    if(inspire_hand.curforce_[5] < -800) {
-      inspire_hand.setangle_[5] = inspire_hand.curangle_[5] + step;
+    if(fabs(inspire_hand.curforce_[5]) > 800) {
+      set_angle[5] = inspire_hand.setangle_[5];
+      if(protection_count[5] > protection_count_threshold) {
+        inspire_hand.setangle_[5] = inspire_hand.curangle_[5] - inspire_hand.curforce_[5] / fabs(inspire_hand.curforce_[5]) * step;
+        set_angle[5] = inspire_hand.setangle_[5];
+      } else {
+        protection_count[5]++;
+      }
+    } else {
+        protection_count[5] = 0;
+        if(!power_open && !in_freedrive) {
+          inspire_hand.setangle_[5] = inspire_hand.curangle_[5];
+          set_angle[5] = -1;
+        }
     }
-    if(inspire_hand.curforce_[5] > 800) {
-      inspire_hand.setangle_[5] = inspire_hand.curangle_[5] - step;
+
+    bool move_update = false;
+    for(int i = 0; i < 6; i++) {
+      if(set_angle[i] != -1) {
+        move_update = true;
+        break;
+      }
     }
-    inspire_hand.set_angle(inspire_hand.setangle_);
+    if(move_update) {
+      inspire_hand.set_angle(set_angle);
+    }
     std::this_thread::sleep_for(std::chrono::milliseconds(1));
   }
 }
