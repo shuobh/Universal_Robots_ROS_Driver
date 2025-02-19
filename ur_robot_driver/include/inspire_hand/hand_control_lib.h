@@ -149,6 +149,7 @@ public:
     double setangle_[6];
     double setangle_cmd_[6];
     double setforce_[6];
+    int32_t safety_mode = 1;
 
     //Serial variables
     serial::Serial *com_port_;

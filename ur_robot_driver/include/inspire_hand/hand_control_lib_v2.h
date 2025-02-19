@@ -81,7 +81,7 @@ public:
     double curspeed_[6] = {0.0};
     double curforce_[6];
     double current_[6];
-    double errorvalue_[6];
+    int errorvalue_[6];
     int statusvalue_[6];
     int tempvalue_[6];
     double setpos_[6];

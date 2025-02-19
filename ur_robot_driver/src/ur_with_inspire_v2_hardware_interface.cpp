@@ -1298,13 +1298,13 @@ bool URwInspireHardwareInterface::setIO(ur_msgs::SetIORequest& req, ur_msgs::Set
       if(req.state) {
           power_open_ = true;
           power_close_ = false;
-          inspire_hand_.get_status();
+          inspire_hand_.get_error();
           bool status_error = true;
           int error_count = 0;
           while(status_error && error_count < 3) {
             status_error = false;
             for(int i = 0; i < 6; i++) {
-              if(inspire_hand_.statusvalue_[i] > 1) {
+              if(inspire_hand_.errorvalue_[i] > 0) {
                 status_error = true;
               }
             }
@@ -1594,10 +1594,10 @@ void URwInspireHardwareInterface::handCommunicationThread(inspire_hand::hand_ser
     }
     inspire_hand.get_actual_force();
     inspire_hand.get_tactile_data();
-    inspire_hand.get_status();
+    inspire_hand.get_error();
     bool status_error = false;
     for(int i = 0; i < 6; i++) {
-      if(inspire_hand.statusvalue_[i] > 1) {
+      if(inspire_hand.errorvalue_[i] > 0) {
         status_error = true;
       }
     }
@@ -1618,7 +1618,6 @@ void URwInspireHardwareInterface::handCommunicationThread(inspire_hand::hand_ser
         power_open = false;
       }
     } else if(power_close) {
-      inspire_hand.get_set_force();
       for(int i = 0; i < 5; i++) {
         inspire_hand.setangle_[i] = inspire_hand::angle_upper_limit[i];
       }

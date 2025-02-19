@@ -1257,6 +1257,25 @@ bool URwInspireHardwareInterface::setIO(ur_msgs::SetIORequest& req, ur_msgs::Set
       if(req.state) {
           power_open_ = true;
           power_close_ = false;
+          inspire_hand_.get_error();
+          bool status_error = true;
+          int error_count = 0;
+          while(status_error && error_count < 3) {
+            status_error = false;
+            for(int i = 0; i < 6; i++) {
+              if(inspire_hand_.errorvalue_[i] > 0) {
+                status_error = true;
+              }
+            }
+            if(status_error) {
+                inspire_hand_.set_clear_error();
+                std::this_thread::sleep_for(std::chrono::milliseconds(500));
+                error_count++;
+            }
+          }
+          if(error_count == 3) {
+            inspire_hand_.safety_mode = ur_dashboard_msgs::SafetyMode::PROTECTIVE_STOP;
+          }
       } else {
           power_close_ = true;
           power_open_ = false;
@@ -1375,6 +1394,9 @@ void URwInspireHardwareInterface::publishRobotAndSafetyMode()
     if (safety_mode_pub_->trylock())
     {
       safety_mode_pub_->msg_.mode = safety_mode_;
+      if(inspire_hand_.safety_mode == ur_dashboard_msgs::SafetyMode::PROTECTIVE_STOP) {
+        safety_mode_pub_->msg_.mode = ur_dashboard_msgs::SafetyMode::PROTECTIVE_STOP;
+      }
       safety_mode_pub_->unlockAndPublish();
     }
   }
@@ -1517,9 +1539,19 @@ void URwInspireHardwareInterface::passthroughTrajectoryDoneCb(urcl::control::Tra
 
 void URwInspireHardwareInterface::handCommunicationThread(inspire_hand::hand_serial& inspire_hand, bool& in_freedrive, bool& power_open, bool& power_close) {
   while (ros::ok()) {
+    static int error_count = 0;
     inspire_hand.get_actual_angle();
     inspire_hand.get_actual_force();
-    std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    inspire_hand.get_error();
+    bool status_error = false;
+    for(int i = 0; i < 6; i++) {
+      if(inspire_hand.errorvalue_[i] > 0) {
+        status_error = true;
+      }
+    }
+    if(!status_error) {
+      inspire_hand.safety_mode = ur_dashboard_msgs::SafetyMode::NORMAL;
+    }
 
     if(power_open) {
       for(int i = 0; i < 5; i++) {
