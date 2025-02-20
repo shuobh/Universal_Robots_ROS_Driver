@@ -244,6 +244,7 @@ protected:
   ros::ServiceServer set_payload_srv_;
   ros::ServiceServer set_sharpness_srv_;
   ros::ServiceServer set_freedrive_srv_;
+  ros::ServiceServer set_hand_force_srv_;
   ros::ServiceServer set_forcemode_srv_;
   
   ros::ServiceServer reset_revolution_counter_srv_;

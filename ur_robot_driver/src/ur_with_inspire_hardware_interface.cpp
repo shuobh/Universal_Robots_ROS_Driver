@@ -41,6 +41,7 @@
 
 #include <bluehill/SetForceMove.h>
 #include <bluehill/SetFloat.h>
+#include <bluehill/SetFloats.h>
 
 using industrial_robot_status_interface::RobotMode;
 using industrial_robot_status_interface::TriState;
@@ -336,6 +337,14 @@ bool URwInspireHardwareInterface::init(ros::NodeHandle& root_nh, ros::NodeHandle
 
   // initialize the inspire hand
   inspire_hand_.set_nh(&root_nh);
+  inspire_hand_.set_force_calibration();
+  ros::Duration(5).sleep();
+  for(int i = 0; i < 6; i++) {
+    inspire_hand_.setspeed_[i] = 500;
+    inspire_hand_.setforce_[i] = 500;
+  }
+  inspire_hand_.set_force(inspire_hand_.setforce_);
+  inspire_hand_.set_speed(inspire_hand_.setspeed_);
 
   hand_control_thread_ = std::thread(handCommunicationThread, std::ref(inspire_hand_), std::ref(hand_in_freedrive_), std::ref(power_open_), std::ref(power_close_));
 
@@ -537,6 +546,28 @@ bool URwInspireHardwareInterface::init(ros::NodeHandle& root_nh, ros::NodeHandle
         } else {
           resp.success = false;
         }
+        return true;
+      });
+
+  // Set hand force through a ROS service
+  set_hand_force_srv_ = robot_hw_nh.advertiseService<bluehill::SetFloats::Request, bluehill::SetFloats::Response>(
+      "set_hand_force", [&](bluehill::SetFloats::Request& req, bluehill::SetFloats::Response& resp) {
+        if(req.values.size() == 1) {
+          for(int i = 0; i < 6; i++) {
+            inspire_hand_.setforce_[i] = req.values[0];
+            inspire_hand_.setspeed_[i] = std::min(req.values[0], 1000.0);
+          }
+        } else if(req.values.size() == 6) {
+          for(int i = 0; i < 6; i++) {
+            inspire_hand_.setforce_[i] = req.values[i];
+            inspire_hand_.setspeed_[i] = std::min(req.values[i], 1000.0);
+          }
+        } else {
+          resp.success = false;
+          return true;
+        }
+        resp.success = inspire_hand_.set_force(inspire_hand_.setforce_);
+        resp.success = resp.success && inspire_hand_.set_speed(inspire_hand_.setspeed_);
         return true;
       });
 
