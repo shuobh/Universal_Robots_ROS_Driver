@@ -350,7 +350,7 @@ bool URwInspireHardwareInterface::init(ros::NodeHandle& root_nh, ros::NodeHandle
   inspire_hand_.set_force_calibration();
   ros::Duration(5).sleep();
   for(int i = 0; i < 6; i++) {
-    inspire_hand_.setspeed_[i] = 500;
+    inspire_hand_.setspeed_[i] = 1000;
     inspire_hand_.setforce_[i] = 500;
   }
   inspire_hand_.set_force(inspire_hand_.setforce_);
@@ -565,19 +565,35 @@ bool URwInspireHardwareInterface::init(ros::NodeHandle& root_nh, ros::NodeHandle
         if(req.values.size() == 1) {
           for(int i = 0; i < 6; i++) {
             inspire_hand_.setforce_[i] = req.values[0];
-            inspire_hand_.setspeed_[i] = std::min(req.values[0], 1000.0);
           }
         } else if(req.values.size() == 6) {
           for(int i = 0; i < 6; i++) {
             inspire_hand_.setforce_[i] = req.values[i];
-            inspire_hand_.setspeed_[i] = std::min(req.values[i], 1000.0);
           }
         } else {
           resp.success = false;
           return true;
         }
         resp.success = inspire_hand_.set_force(inspire_hand_.setforce_);
-        resp.success = resp.success && inspire_hand_.set_speed(inspire_hand_.setspeed_);
+        return true;
+      });
+
+  // Set hand speed through a ROS service
+  set_hand_speed_srv_ = robot_hw_nh.advertiseService<bluehill::SetFloats::Request, bluehill::SetFloats::Response>(
+      "set_hand_speed", [&](bluehill::SetFloats::Request& req, bluehill::SetFloats::Response& resp) {
+        if(req.values.size() == 1) {
+          for(int i = 0; i < 6; i++) {
+            inspire_hand_.setspeed_[i] = std::min(req.values[0], 1000.0);
+          }
+        } else if(req.values.size() == 6) {
+          for(int i = 0; i < 6; i++) {
+            inspire_hand_.setspeed_[i] = std::min(req.values[i], 1000.0);
+          }
+        } else {
+          resp.success = false;
+          return true;
+        }
+        resp.success = inspire_hand_.set_speed(inspire_hand_.setspeed_);
         return true;
       });
 
