@@ -1664,37 +1664,39 @@ void URwInspireHardwareInterface::handCommunicationThread(inspire_hand::hand_ser
     }
 
     // Protection
-    static const double step = 0.05;
+    static const double step = 0.008;
     static const int protection_count_threshold = 5;
     static std::vector<int> protection_count(6, 0);
     double set_angle[6];
     set_angle[5] = inspire_hand.setangle_[5];
     for(int i = 0; i < 5; i++) {
       set_angle[i] = inspire_hand.setangle_[i];
-      if(inspire_hand.curforce_[i] > 1000) {
+      if(inspire_hand.curforce_[i] > inspire_hand.setforce_[i] * 2) {
         if(protection_count[i] > protection_count_threshold) {
-          inspire_hand.setangle_[i] = inspire_hand.curangle_[i] - step;
-          set_angle[i] = inspire_hand.curangle_[i] - step;
+          double scaled_step = (inspire_hand.curforce_[i] - inspire_hand.setforce_[i] * 2) / 200 * step + step;
+          inspire_hand.setangle_[i] = inspire_hand.curangle_[i] - scaled_step;
+          set_angle[i] = inspire_hand.curangle_[i] - scaled_step;
         } else {
           protection_count[i]++;
         }
       } else {
         protection_count[i] = 0;
-        if(inspire_hand.curforce_[i] > inspire_hand.setforce_[i] * 0.8 || fabs(inspire_hand.curangle_[i] - inspire_hand::angle_upper_limit[i]) < 0.05) {
-          if(!power_open && !in_freedrive) {
+        if(!power_open && !in_freedrive) {
+          if(inspire_hand.curforce_[i] > inspire_hand.setforce_[i] * 0.8 || fabs(inspire_hand.curangle_[i] - inspire_hand::angle_upper_limit[i]) < 0.05) {
             inspire_hand.setangle_[i] = inspire_hand.curangle_[i];
             set_angle[i] = -1;
+          } else if(inspire_hand.curforce_[i] > inspire_hand.setforce_[i] * 0.4) {
+            inspire_hand.setangle_[i] = inspire_hand.curangle_[i] + step / 2.0;
+            set_angle[i] = inspire_hand.curangle_[i] + step / 2.0;
           }
-        } else if(inspire_hand.curforce_[i] > inspire_hand.setforce_[i] * 0.4) {
-          inspire_hand.setangle_[i] = inspire_hand.curangle_[i] + step / 5.0;
-          set_angle[i] = inspire_hand.curangle_[i] + step / 5.0;
         }
       }
     }
-    if(fabs(inspire_hand.curforce_[5]) > 800) {
+    if(fabs(inspire_hand.curforce_[5]) > inspire_hand.setforce_[5] * 1.5) {
       set_angle[5] = inspire_hand.setangle_[5];
       if(protection_count[5] > protection_count_threshold) {
-        inspire_hand.setangle_[5] = inspire_hand.curangle_[5] - inspire_hand.curforce_[5] / fabs(inspire_hand.curforce_[5]) * step;
+        double scaled_step = (fabs(inspire_hand.curforce_[5]) - inspire_hand.setforce_[5] * 1.5) / 200.0 * step + step;
+        inspire_hand.setangle_[5] = inspire_hand.curangle_[5] - inspire_hand.curforce_[5] / fabs(inspire_hand.curforce_[5]) * scaled_step;
         set_angle[5] = inspire_hand.setangle_[5];
       } else {
         protection_count[5]++;
