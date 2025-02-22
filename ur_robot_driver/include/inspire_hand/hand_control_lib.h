@@ -29,10 +29,9 @@ class hand_serial {
 public:
 
     hand_serial() {};
-    hand_serial(ros::NodeHandle *nh);
 
     ~hand_serial();
-    void set_nh(ros::NodeHandle *nh);
+    void initialize(int hand_id, std::string port_name, int baudrate);
 
     int connect();
 
@@ -131,12 +130,9 @@ public:
 
     //Launch params
     int hand_id_;
-    std::string port_name_;
     int baudrate_;
 
     //hand state variables
-    double act_position_;
-    uint8_t hand_state_;
     double curpos_[6];
     double curangle_[6];
     double curspeed_[6] = {0.0};

@@ -10,22 +10,15 @@
 #include <string>
 
 namespace inspire_hand {
-hand_serial::hand_serial(ros::NodeHandle *nh):
-    act_position_(-1),
-    hand_state_(0xff) {
-    set_nh(nh);
-}
-
-void hand_serial::set_nh(ros::NodeHandle *nh) {
-    //Read launch file params
-    nh->param<int>("ur_with_inspire_hardware_interface/hand_id", hand_id_, 1);
-    nh->param<std::string>("ur_with_inspire_hardware_interface/portname", port_name_, "/dev/ttyUSB0");
-    nh->param<int>("ur_with_inspire_hardware_interface/baudrate", baudrate_, 115200);
+// Destructor
+void hand_serial::initialize(int hand_id, std::string port_name, int baudrate) {
+    hand_id_ = hand_id;
+    baudrate_ = baudrate;
 
     //Initialize and open serial port
-    com_port_ = new serial::Serial(port_name_, (uint32_t)baudrate_, serial::Timeout::simpleTimeout(5));
+    com_port_ = new serial::Serial(port_name, (uint32_t)baudrate_, serial::Timeout::simpleTimeout(5));
     if (com_port_->isOpen()) {
-        ROS_INFO_STREAM("Hand: Serial port " << port_name_ << " openned");
+        ROS_INFO_STREAM("Hand: Serial port " << port_name << " openned");
         int id_state = 0;
         while (true) {
             id_state = connect();
@@ -36,15 +29,15 @@ void hand_serial::set_nh(ros::NodeHandle *nh) {
                 hand_id_ = 1;
             }
         }
-
+        uint8_t hand_state = 0xff;
         //Get initial state and discard input buffer
-        while (hand_state_ == 0xff) {
-            //hand_state_ = 0x01;
-            hand_state_ = get_error();
+        while (hand_state == 0xff) {
+            //hand_state = 0x01;
+            hand_state = get_error();
             ros::Duration(WAIT_FOR_RESPONSE_INTERVAL).sleep();
         }
     } else {
-        ROS_ERROR_STREAM("Hand: Serial port " << port_name_ << " not opened");
+        ROS_ERROR_STREAM("Hand: Serial port " << port_name << " not opened");
     }
 }
 

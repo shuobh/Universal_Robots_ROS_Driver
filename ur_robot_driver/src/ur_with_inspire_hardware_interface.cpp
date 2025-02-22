@@ -116,6 +116,15 @@ bool URwInspireHardwareInterface::init(ros::NodeHandle& root_nh, ros::NodeHandle
   // Port that will be opened to forward script commands from the driver to the robot
   int script_command_port = robot_hw_nh.param("script_command_port", 50004);
 
+  // ID of the hand controller. This is used to identify the hand controller in the driver.
+  int hand_id = robot_hw_nh.param("hand_id", 1);
+
+  // IP that will be used for the hand controller to communicate back to the driver.
+  std::string port_name = robot_hw_nh.param<std::string>("portname", "/dev/ttyUSB0");
+
+  // Port that will be opened to communicate between the driver and the hand controller.
+  int baudrate = robot_hw_nh.param("baudrate", 115200);
+
   // When the robot's URDF is being loaded with a prefix, we need to know it here, as well, in order
   // to publish correct frame names for frames reported by the robot directly.
   robot_hw_nh.param<std::string>("tf_prefix", tf_prefix_, "");
@@ -336,7 +345,7 @@ bool URwInspireHardwareInterface::init(ros::NodeHandle& root_nh, ros::NodeHandle
   command_sub_ = robot_hw_nh.subscribe("script_command", 1, &URwInspireHardwareInterface::commandCallback, this);
 
   // initialize the inspire hand
-  inspire_hand_.set_nh(&root_nh);
+  inspire_hand_.initialize(hand_id, port_name, baudrate);
   inspire_hand_.set_force_calibration();
   ros::Duration(5).sleep();
   for(int i = 0; i < 6; i++) {
