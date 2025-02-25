@@ -1686,8 +1686,7 @@ void URwInspireHardwareInterface::handCommunicationThread(inspire_hand::hand_ser
       }
     } else {
         protection_count[5] = 0;
-        if(!power_open && !in_freedrive) {
-          inspire_hand.setangle_[5] = inspire_hand.curangle_[5];
+        if(fabs(inspire_hand.setangle_[5] - inspire_hand.curangle_[5]) < 0.05) {
           set_angle[5] = -1;
         }
     }
