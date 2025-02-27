@@ -356,7 +356,7 @@ bool URwInspireHardwareInterface::init(ros::NodeHandle& root_nh, ros::NodeHandle
   inspire_hand_.set_force(inspire_hand_.setforce_);
   inspire_hand_.set_speed(inspire_hand_.setspeed_);
 
-  hand_control_thread_ = std::thread(handCommunicationThread, std::ref(inspire_hand_), std::ref(hand_in_freedrive_), std::ref(power_open_), std::ref(power_close_));
+  hand_control_thread_ = std::thread(handCommunicationThread, std::ref(inspire_hand_), std::ref(hand_in_freedrive_), std::ref(in_freedrive_), std::ref(power_open_), std::ref(power_close_));
 
 
   // Names of the joints. Usually, this is given in the controller config file.
@@ -1594,7 +1594,7 @@ void URwInspireHardwareInterface::passthroughTrajectoryDoneCb(urcl::control::Tra
   }
 }
 
-void URwInspireHardwareInterface::handCommunicationThread(inspire_hand::hand_serial& inspire_hand, bool& in_freedrive, bool& power_open, bool& power_close) {
+void URwInspireHardwareInterface::handCommunicationThread(inspire_hand::hand_serial& inspire_hand, bool& hand_in_freedrive, bool& robot_in_freedrive, bool& power_open, bool& power_close) {
   ros::NodeHandle nh;
   ros::Publisher tactile_image_pub = nh.advertise<sensor_msgs::Image>("tactile_image", 1);
   while (ros::ok()) {
@@ -1630,17 +1630,17 @@ void URwInspireHardwareInterface::handCommunicationThread(inspire_hand::hand_ser
       for(int i = 0; i < 5; i++) {
         inspire_hand.setangle_[i] = inspire_hand::angle_lower_limit[i];
       }
-      if(in_freedrive) {
+      if(hand_in_freedrive || !robot_in_freedrive) {
         power_open = false;
       }
     } else if(power_close) {
       for(int i = 0; i < 5; i++) {
         inspire_hand.setangle_[i] = inspire_hand::angle_upper_limit[i];
       }
-      if(in_freedrive) {
+      if(hand_in_freedrive || !robot_in_freedrive) {
         power_close = false;
       }
-    } else if(in_freedrive) {
+    } else if(hand_in_freedrive) {
       const std::vector<double> force_ratio_lookup = {0.0016, 0.0016, 0.0016, 0.0016, 0.00092, 0.0017};
       const std::vector<double> force_pos_threshold_lookup = {80, 80, 80, 80, 80, 80};
       const std::vector<double> force_neg_threshold_lookup = {-20, -20, -20, -20, -10, -80};
@@ -1681,7 +1681,7 @@ void URwInspireHardwareInterface::handCommunicationThread(inspire_hand::hand_ser
         }
       } else {
         protection_count[i] = 0;
-        if(!power_open && !in_freedrive && inspire_hand.setangle_[i] > inspire_hand.curangle_[i]) {
+        if(!power_open && !hand_in_freedrive && inspire_hand.setangle_[i] > inspire_hand.curangle_[i]) {
           if(inspire_hand.curforce_[i] > inspire_hand.setforce_[i] * 0.8 || fabs(inspire_hand.curangle_[i] - inspire_hand::angle_upper_limit[i]) < 0.05) {
             inspire_hand.setangle_[i] = inspire_hand.curangle_[i];
             set_angle[i] = -1;
