@@ -620,7 +620,7 @@ bool URwInspireHardwareInterface::init(ros::NodeHandle& root_nh, ros::NodeHandle
                                      req.force_move.force[3], req.force_move.force[4], req.force_move.force[5]};
           int32_t force_mode_type = 2;
           // For non-compliance directions, this will set max deviation in m and rad
-          urcl::vector6d_t limits = { 0.01, 0.01, 0.01, 0.03, 0.03, 0.03 };
+          urcl::vector6d_t limits = { 0.01, 0.01, 0.01, 0.05, 0.05, 0.05 };
           for(int i = 0; i < 6; i++) {
             if(req.force_move.compliance[i]) {
               // For compliance directions, this will set max speed in m/s and rad/s
@@ -634,7 +634,7 @@ bool URwInspireHardwareInterface::init(ros::NodeHandle& root_nh, ros::NodeHandle
               if(i < 3) {
                 limits[i] = 0.1 * scale;
               } else {
-                limits[i] = 0.3 * scale;
+                limits[i] = 0.5 * scale;
               }
             }
           }
