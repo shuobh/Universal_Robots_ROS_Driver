@@ -558,7 +558,7 @@ bool HardwareInterface::init(ros::NodeHandle& root_nh, ros::NodeHandle& robot_hw
               }
             }
           }
-          resp.success = ur_driver_->startForceMode(task_frame, selection_vector, wrench, force_mode_type, limits);
+          resp.success = ur_driver_->startForceMode(task_frame, selection_vector, wrench, force_mode_type, limits, req.force_move.damping_factor, req.force_move.gain_scaling_factor);
           in_forcemode_ = true;
         } else {
           resp.success = ur_driver_->endForceMode();
@@ -794,8 +794,6 @@ void HardwareInterface::read(const ros::Time& time, const ros::Duration& period)
       {
         ROS_ERROR("Restarting robot driver due to connection issue!");
         std::system("rosnode kill /robot_state_publisher & rosnode kill /ros_control_controller_spawner & rosnode kill /ros_control_stopped_spawner & rosnode kill /controller_stopper & rosnode kill /ur_hardware_interface/ur_robot_state_helper & rosnode kill /ur_hardware_interface");
-      } else {
-        error_counter = 0;
       }
     }
   }
