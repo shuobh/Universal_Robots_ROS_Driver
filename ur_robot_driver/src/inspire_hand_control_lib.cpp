@@ -1,12 +1,354 @@
-#ifndef HAND_CONTROL_LIB_V2_CPP
-#define HAND_CONTROL_LIB_V2_CPP
+#ifndef HAND_CONTROL_LIB_CPP
+#define HAND_CONTROL_LIB_CPP
 
-#include <inspire_hand/hand_control_lib_v2.h>
-#include <ros/ros.h>
+#include <inspire_hand/inspire_hand_control.h>
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <vector>
+#include <iostream>
+#include <string>
 
 namespace inspire_hand {
 // Destructor
-hand_serial::~hand_serial()
+void HandControlSerial::initialize(int hand_id, const std::string& port_name, int baudrate) {
+    hand_id_ = hand_id;
+    baudrate_ = baudrate;
+
+    //Initialize and open serial port
+    com_port_ = new serial::Serial(port_name, (uint32_t)baudrate_, serial::Timeout::simpleTimeout(5));
+    if (com_port_->isOpen()) {
+        ROS_INFO_STREAM("Hand: Serial port " << port_name << " openned");
+        int id_state = 0;
+        while (true) {
+            id_state = connect();
+            if (id_state == 1) break;
+            hand_id_++;
+            if (hand_id_ >= 256) {
+                ROS_INFO("Failed to connect to hand, restarting from beginning");
+                hand_id_ = 1;
+            }
+        }
+        uint8_t hand_state = 0xff;
+        //Get initial state and discard input buffer
+        while (hand_state == 0xff) {
+            //hand_state = 0x01;
+            get_error();
+            if (errorvalue_[0] == 0 && errorvalue_[1] == 0 &&errorvalue_[2] == 0 &&errorvalue_[3] == 0 &&errorvalue_[4] == 0 &&errorvalue_[5] == 0)
+                hand_state = 0x00;
+            else
+                hand_state = 0xff;
+            ros::Duration(WAIT_FOR_RESPONSE_INTERVAL).sleep();
+        }
+    } else {
+        ROS_ERROR_STREAM("Hand: Serial port " << port_name << " not opened");
+    }
+}
+
+HandControlSerial::~HandControlSerial() {
+    com_port_->close();      //Close port
+    delete com_port_;        //delete object
+}
+
+bool HandControlSerial::set_reg(const int value, uint8_t pin1, uint8_t pin2, double delay) {
+    std::lock_guard<std::mutex> lk(cmd_mutex_);
+
+    std::vector<uint8_t> output {0xEB, 0x90, hand_id_, 0x04, 0x12, pin1, pin2};
+
+    unsigned int temp_int;
+    temp_int = (unsigned int)value;
+    output.push_back(temp_int);
+
+    //Add checksum 
+    output.push_back(check_sum(output) & 0xff);
+
+    //Send message to the module
+    com_port_->write(output);
+
+    ros::Duration(delay).sleep();
+
+    //Read response
+    std::vector<uint8_t> input;
+    while (input.empty()) {
+        com_port_->read(input, (size_t)64);
+    }
+    return input[7];
+}
+
+bool HandControlSerial::set_reg(const double values[6], uint8_t pin1, uint8_t pin2, double delay) {
+    std::lock_guard<std::mutex> lk(cmd_mutex_);
+
+    std::vector<uint8_t> output {0xEB, 0x90, hand_id_, 0x0F, 0x12, pin1, pin2};
+
+    for(int i = 0; i < 6; i++) {
+        unsigned int temp_int;
+        temp_int = (unsigned int)values[i];
+        output.push_back(temp_int & 0xff);
+        output.push_back((temp_int >> 8) & 0xff);
+    }
+    //Add checksum 
+    output.push_back(check_sum(output) & 0xff);
+
+    //Send message to the module
+    try {
+        com_port_->write(output);
+    } catch (const serial::SerialException& e) {
+        ROS_ERROR("Serial write error: %s", e.what());
+        return false;
+    } catch (const std::exception& e) {
+        ROS_ERROR("Error writing to serial port: %s", e.what());
+        return false;
+    }
+
+    ros::Duration(delay).sleep();
+
+    //Read response
+    std::vector<uint8_t> input;
+    try {
+        while (input.empty()) {
+            com_port_->read(input, (size_t)64);
+        }
+        return input[7];
+    } catch (const serial::SerialException& e) {
+        ROS_ERROR("Serial read error: %s", e.what());
+        return false;
+    } catch (const std::exception& e) {
+        ROS_ERROR("Error reading from serial port: %s", e.what());
+        return false;
+    }
+}
+
+bool HandControlSerial::get_reg(double (&values)[6], uint8_t pin1, uint8_t pin2, bool bit7, double delay) {
+    std::lock_guard<std::mutex> lk(cmd_mutex_);
+    std::vector<uint8_t> output ={0xEB, 0x90, hand_id_, 0x04, 0x11, pin1, pin2, bit7 ? 0x06:0x0C};
+
+    //Add checksum 
+    output.push_back(check_sum(output) & 0xff);
+    //Send message to the module
+    try {
+        com_port_->write(output);
+    } catch (const serial::SerialException& e) {
+        ROS_ERROR("Serial write error: %s", e.what());
+        return false;
+    } catch (const std::exception& e) {
+        ROS_ERROR("Error writing to serial port: %s", e.what());
+        return false;
+    }
+
+    ros::Duration(delay).sleep();
+
+    //Read response
+    std::vector<uint8_t> input;
+    try {
+        while (input.empty()) {
+            com_port_->read(input, (size_t)64);
+        }
+
+        if(bit7) {
+            for (int j = 0; j<6; j++)
+                values[j] = double(input[7 + j]);
+        } else {
+            for (int j = 0; j<6; j++)
+                values[j] = double(((input[8 + j * 2] << 8) & 0xff00) + input[7 + j * 2]);
+        }
+        return true;
+    } catch (const serial::SerialException& e) {
+        ROS_ERROR("Serial read error: %s", e.what());
+        return false;
+    } catch (const std::exception& e) {
+        ROS_ERROR("Error reading from serial port: %s", e.what());
+        return false;
+    }
+}
+
+unsigned int HandControlSerial::check_sum(const std::vector<uint8_t>& output) {
+    unsigned int check_num = 0;
+    int len = output[3] + 5;
+    for (int i = 2; i < len - 1; i++)
+        check_num = check_num + output[i];
+    return check_num;
+}
+
+int HandControlSerial::connect() {
+    std::vector<uint8_t> output;
+    output.push_back(0xEB);
+    output.push_back(0x90);
+    output.push_back(hand_id_);
+    output.push_back(0x04);
+    output.push_back(0x11);
+    output.push_back(0xFE);
+    output.push_back(0x05);
+    output.push_back(0x0C);
+
+    unsigned int check_num = 0;
+
+    int len = output[3] + 5;
+    for (int i = 2; i < len - 1; i++)
+        check_num = check_num + output[i];
+
+    //Add checksum to the output buffer
+    output.push_back(check_num & 0xff);
+
+    //Send message to the module and wait for response
+    com_port_->write(output);
+
+    ros::Duration(0.001).sleep();
+
+    //Read response
+    std::vector<uint8_t> input;
+    com_port_->read(input, (size_t)64);
+    //ROS_INFO("ok");
+    if (input.empty())
+        return 0;
+    else
+        return 1;
+}
+
+bool HandControlSerial::set_id(int id) {
+    hand_id_ = id;
+    return set_reg(id, 0xE8, 0x03);
+}
+
+bool HandControlSerial::set_redu_ratio(int redu_ratio) {
+    if (redu_ratio == 0)
+        baudrate_ = 115200;
+    else if (redu_ratio == 1)
+        baudrate_ = 57600;
+    else
+        baudrate_ = 19200;
+    return set_reg(redu_ratio, 0xE9, 0x03);
+}
+
+bool HandControlSerial::set_clear_error() {
+    return set_reg(0x01, 0xEC, 0x03, 1.0);
+}
+
+bool HandControlSerial::set_save_flash() {
+    return set_reg(0x01, 0xED, 0x03, 1.0);
+}
+
+bool HandControlSerial::set_reset_parameters() {
+    return set_reg(0x01, 0xEE, 0x03, 1.0);
+}
+
+bool HandControlSerial::set_force_calibration() {
+    return set_reg(0x01, 0xF1, 0x03, 1.0);
+}
+
+bool HandControlSerial::set_gesture_number(int gesture_no) {
+    return set_reg(gesture_no, 0xF0, 0x03, 1.0);
+}
+
+bool HandControlSerial::set_current_limit(const double current_limits[6]) {
+    return set_reg(current_limits, 0xFC, 0x03);
+}
+
+bool HandControlSerial::set_default_speed(const double speed[6]) {
+    return set_reg(speed, 0x08, 0x04);
+}
+
+bool HandControlSerial::set_default_force(const double force[6]) {
+    return set_reg(force, 0x14, 0x04);
+}
+
+bool HandControlSerial::set_user_defined_angle(const double angle[6], int k) {
+    int temp;
+    temp = 1066 + (k - 14) * 12;
+    unsigned int temp_int;
+    temp_int = (unsigned int)temp;
+    double encoder[6];
+    for(int i = 0; i < 6; i++) {
+        encoder[i] = (1000.0 - 1000.0 * angle[i] / (angle_upper_limit[i] - angle_lower_limit[i]));
+    }
+    return set_reg(encoder, temp_int & 0xff, (temp_int >> 8) & 0xff);
+}
+
+bool HandControlSerial::set_position(const double pos[6]) {
+    return set_reg(pos, 0xC2, 0x05);
+}
+
+bool HandControlSerial::set_angle(const double angle[6]) {
+    double encoder[6];
+    for(int i = 0; i < 6; i++) {
+        if(angle[i] == -1) {
+            encoder[i] = -1;
+        } else {
+            encoder[i] = (1000.0 - 1000.0 * angle[i] / (angle_upper_limit[i] - angle_lower_limit[i]));
+        }
+    }
+    return set_reg(encoder, 0xCE, 0x05);
+}
+
+bool HandControlSerial::set_force(const double force[6]) {
+    return set_reg(force, 0xDA, 0x05);
+}
+
+bool HandControlSerial::set_speed(const double speed[6]) {
+    return set_reg(speed, 0xF2, 0x05);
+}
+
+bool HandControlSerial::get_actual_position() {
+    return get_reg(curpos_, 0xFE, 0x05);
+}
+
+bool HandControlSerial::get_actual_angle() {
+    double angle[6];
+    bool success = get_reg(angle, 0x0A, 0x06);
+    if(success) {
+        for(int i = 0; i<6; i++) {
+            curangle_[i] = (1000.0 - angle[i]) / 1000.0 * (angle_upper_limit[i] - angle_lower_limit[i]);
+        }
+    }
+    return success;
+}
+
+bool HandControlSerial::get_actual_force() {
+    double force[6];
+    bool success = get_reg(force, 0x2E, 0x06);
+    if(success) {
+        for(int i = 0; i<6; i++)
+            curforce_[i] = force[i]>32768?force[i]-65536:force[i];
+    }
+    return success;
+}
+
+bool HandControlSerial::get_actual_current() {
+    return get_reg(current_, 0x3A, 0x06);
+}
+
+bool HandControlSerial::get_error() {
+    return get_reg(errorvalue_, 0x46, 0x06, true);
+}
+
+bool HandControlSerial::get_status() {
+    return get_reg(statusvalue_, 0x4C, 0x06, true);
+}
+
+bool HandControlSerial::get_temp() {
+    return get_reg(tempvalue_, 0x52, 0x06, true);
+}
+
+bool HandControlSerial::get_set_position() {
+    return get_reg(setpos_, 0xC2, 0x05);
+}
+
+bool HandControlSerial::get_set_angle() {
+    double angle[6];
+    bool success = get_reg(angle, 0xCE, 0x05);
+    if(success) {
+        for(int i = 0; i<6; i++) {
+            setangle_[i] = (1000.0 - angle[i]) / 1000.0 * (angle_upper_limit[i] - angle_lower_limit[i]);
+        }
+    }
+    return success;
+}
+
+bool HandControlSerial::get_set_force() {
+    return get_reg(setforce_, 0xDA, 0x05);
+}
+
+// Destructor
+HandControlFTP::~HandControlFTP()
 {
     if (ctx_) {
         modbus_close(ctx_);
@@ -14,7 +356,7 @@ hand_serial::~hand_serial()
     }
 }
 
-void hand_serial::initialize(int hand_id, std::string ip_address, int port) {
+void HandControlFTP::initialize(int hand_id, const std::string& ip_address, int port) {
     // Initialize Modbus TCP context
     hand_id_ = hand_id;
     ip_address_ = ip_address; // Replace with your device's IP
@@ -31,7 +373,7 @@ void hand_serial::initialize(int hand_id, std::string ip_address, int port) {
 }
 
 // Callback to get error information
-bool hand_serial::get_error() {
+bool HandControlFTP::get_error() {
     ROS_DEBUG("Hand: Get error request received");
 
     uint16_t tab_reg[6]; // 用于存储读取的寄存器值
@@ -57,7 +399,7 @@ bool hand_serial::get_error() {
     return true; // 返回成功
 }
 
-bool hand_serial::get_status() {
+bool HandControlFTP::get_status() {
     ROS_DEBUG("Hand: Get status request received");
 
     uint16_t tab_reg[6]; // 用于存储读取的寄存器值
@@ -83,7 +425,7 @@ bool hand_serial::get_status() {
     return true; // 返回成功
 }
 
-bool hand_serial::get_actual_force() {
+bool HandControlFTP::get_actual_force() {
     ROS_DEBUG("Hand: Get Force Actual values request received");
 
     // 直接读取各个手指的实际受力值
@@ -100,7 +442,7 @@ bool hand_serial::get_actual_force() {
     return validate_values(curforce_, -4000, 4000);
 }
 
-bool hand_serial::get_actual_current() {
+bool HandControlFTP::get_actual_current() {
     ROS_DEBUG("Hand: Get Current values request received");
 
     uint16_t tab_reg[6];
@@ -116,7 +458,7 @@ bool hand_serial::get_actual_current() {
     return validate_values(current_, 0, 1000);
 }
 
-bool hand_serial::get_set_angle() {
+bool HandControlFTP::get_set_angle() {
     ROS_DEBUG("Hand: Get Angle Set values request received");
 
     uint16_t tab_reg[6];
@@ -134,7 +476,7 @@ bool hand_serial::get_set_angle() {
     return true;
 }
 
-bool hand_serial::get_actual_angle() {
+bool HandControlFTP::get_actual_angle() {
     ROS_DEBUG("Hand: Get Angle Actual values request received");
 
     uint16_t tab_reg[6];
@@ -152,7 +494,7 @@ bool hand_serial::get_actual_angle() {
     return true;
 }
 
-bool hand_serial::get_set_force() {
+bool HandControlFTP::get_set_force() {
     ROS_DEBUG("Hand: Get Force Set values request received");
 
     // 直接读取各个手指的力控设置值
@@ -169,7 +511,7 @@ bool hand_serial::get_set_force() {
     return validate_values(setforce_, 0, 3000); // 检查读取的值是否有效
 }
 
-bool hand_serial::get_temp()
+bool HandControlFTP::get_temp()
 {
     ROS_DEBUG("Hand: Get temperature request received");
 
@@ -196,7 +538,7 @@ bool hand_serial::get_temp()
     return true; // 返回成功
 }
 
-bool hand_serial::get_set_position() {
+bool HandControlFTP::get_set_position() {
     ROS_DEBUG("Hand: Get Position Set values request received");
 
     // 直接读取各个手指的驱动器位置设置值
@@ -213,7 +555,7 @@ bool hand_serial::get_set_position() {
     return validate_values(setpos_, 0, 2000); // 检查读取的值是否有效
 }
 
-bool hand_serial::get_actual_position() {
+bool HandControlFTP::get_actual_position() {
     ROS_DEBUG("Hand: Get Position Actual values request received");
 
     // 直接读取各个手指的驱动器实际位置值
@@ -230,7 +572,7 @@ bool hand_serial::get_actual_position() {
 }
 
 // Callback to set ID
-bool hand_serial::set_id(int id) {
+bool HandControlFTP::set_id(int id) {
     ROS_DEBUG("Hand: Set ID request received");
 
     // 检查请求中的 ID 是否在合法范围内
@@ -256,7 +598,7 @@ bool hand_serial::set_id(int id) {
 }
 
 // Callback to set Reduction Ratio
-bool hand_serial::set_redu_ratio(int redu_ratio) {
+bool HandControlFTP::set_redu_ratio(int redu_ratio) {
     ROS_DEBUG("Hand: Set Reduction Ratio request received");
 
     // 检查请求中的 redu_ratio 是否在合法范围内
@@ -281,7 +623,7 @@ bool hand_serial::set_redu_ratio(int redu_ratio) {
     }
 }
 
-bool hand_serial::set_gesture_number(int gesture_no)
+bool HandControlFTP::set_gesture_number(int gesture_no)
 {
     int register_address = 0x0910;  // 当前动作序列索引寄存器
     int action_register_address = 0x0912; // 动作序列号寄存器地址
@@ -301,7 +643,7 @@ bool hand_serial::set_gesture_number(int gesture_no)
     return true; // 写入成功
 }
 
-bool hand_serial::validate_values(const double values[6], double lower_limit, double upper_limit) {
+bool HandControlFTP::validate_values(const double values[6], double lower_limit, double upper_limit) {
     // 检查请求中的位置参数是否合法
     for(int i = 0; i < 6; i++) {
         if (values[i] < lower_limit || values[i] > upper_limit) {
@@ -312,7 +654,7 @@ bool hand_serial::validate_values(const double values[6], double lower_limit, do
     return true; // 返回成功
 }
 
-bool hand_serial::validate_values(const uint16_t values[6], uint16_t lower_limit, uint16_t upper_limit) {
+bool HandControlFTP::validate_values(const uint16_t values[6], uint16_t lower_limit, uint16_t upper_limit) {
     // 检查请求中的位置参数是否合法
     for(int i = 0; i < 6; i++) {
         if (values[i] < lower_limit || values[i] > upper_limit) {
@@ -323,7 +665,7 @@ bool hand_serial::validate_values(const uint16_t values[6], uint16_t lower_limit
     return true; // 返回成功
 }
 
-bool hand_serial::save_setting() {
+bool HandControlFTP::save_setting() {
     // 写入寄存器 1005 以保存设置
     uint16_t save_value = 1; // 代表保存设置
     int save_rc = writeRegister(1005, save_value);
@@ -335,7 +677,7 @@ bool hand_serial::save_setting() {
 }
 
 // Callback to set position
-bool hand_serial::set_position(const double pos[6]) {
+bool HandControlFTP::set_position(const double pos[6]) {
     ROS_DEBUG("hand: set pos");
     if(validate_values(pos, 0, 2000)) {
         return writeMultipleRegisters(1474, pos, 6)==0;
@@ -343,7 +685,7 @@ bool hand_serial::set_position(const double pos[6]) {
     return false; // 返回失败
 }
 
-bool hand_serial::set_speed(const double speed[6]) {
+bool HandControlFTP::set_speed(const double speed[6]) {
     ROS_DEBUG("hand: set speed");
 
     if(validate_values(speed, 0, 1000)) {
@@ -351,7 +693,7 @@ bool hand_serial::set_speed(const double speed[6]) {
     }
 }
 
-bool hand_serial::set_default_speed(const double speed[6]) {
+bool HandControlFTP::set_default_speed(const double speed[6]) {
     ROS_DEBUG("hand: set default speed");
     if(validate_values(speed, 0, 1000) && writeMultipleRegisters(1032, speed, 6)==0) {
         return save_setting(); // 返回成功
@@ -359,7 +701,7 @@ bool hand_serial::set_default_speed(const double speed[6]) {
     return false; // 返回失败
 }
 
-bool hand_serial::set_angle(const double angle[6]) {
+bool HandControlFTP::set_angle(const double angle[6]) {
     ROS_DEBUG("hand: set angle");
     double encoder[6];
     for(int i = 0; i < 6; i++) {
@@ -375,7 +717,7 @@ bool hand_serial::set_angle(const double angle[6]) {
     return false; // 返回失败
 }
 
-bool hand_serial::set_force(const double force[6]) {
+bool HandControlFTP::set_force(const double force[6]) {
     ROS_DEBUG("hand: set force");
 
     if(validate_values(force, 0, 3000)) {
@@ -384,7 +726,7 @@ bool hand_serial::set_force(const double force[6]) {
     return false; // 返回失败
 }
 
-bool hand_serial::set_default_force(const double force[6]) {
+bool HandControlFTP::set_default_force(const double force[6]) {
     ROS_DEBUG("Hand: Set Default Force request received");
 
     if(validate_values(force, 0, 3000) && writeMultipleRegisters(1044, force, 6)==0) {
@@ -393,7 +735,7 @@ bool hand_serial::set_default_force(const double force[6]) {
     return false; // 返回失败
 }
 
-bool hand_serial::set_force_calibration() {
+bool HandControlFTP::set_force_calibration() {
     ROS_DEBUG("Hand: Set Force Calibration request received");
 
     uint16_t calibration_value = 1000; // 要写入的校准值
@@ -422,7 +764,7 @@ bool hand_serial::set_force_calibration() {
     return true; // 返回成功
 }
 
-bool hand_serial::set_current_limit(const double current_limit[6]) {
+bool HandControlFTP::set_current_limit(const double current_limit[6]) {
     ROS_DEBUG("Hand: Set Current Limit request received");
 
     if(validate_values(current_limit, 0, 1500)) {
@@ -431,7 +773,7 @@ bool hand_serial::set_current_limit(const double current_limit[6]) {
     return false; // 返回失败
 }
 
-bool hand_serial::set_clear_error() {
+bool HandControlFTP::set_clear_error() {
     ROS_DEBUG("Hand: Set CLEAR ERROR request received");
 
     uint16_t value = 1; // 写入1，代表清除错误
@@ -445,7 +787,7 @@ bool hand_serial::set_clear_error() {
 }
 
 // Callback to reset parameters
-bool hand_serial::set_reset_parameters() {
+bool HandControlFTP::set_reset_parameters() {
     ROS_DEBUG("Hand: Set RESET PARAMETER request received");
 
     uint16_t value = 1; // 写入1，代表重置参数
@@ -458,7 +800,7 @@ bool hand_serial::set_reset_parameters() {
     return true; // 返回成功
 }
 
-std::vector<std::vector<uint16_t>> hand_serial::resize_tactile_data(uint16_t *v, int rows, int cols) {
+std::vector<std::vector<uint16_t>> HandControlFTP::resize_tactile_data(uint16_t *v, int rows, int cols) {
     // Create a 2D vector
     std::vector<std::vector<uint16_t>> matrix(rows, std::vector<uint16_t>(cols));
 
@@ -492,7 +834,7 @@ std::vector<std::tuple<int, int, int, int, int, bool, std::string>> tactile_read
     {4900, 8, 14, 0, 4, true, "palm"}
 };
 
-cv::Mat hand_serial::convert_tactile_data_to_image(const std::vector<std::vector<std::vector<uint16_t>>>& multi_tactile_data, int rows, int cols) {
+cv::Mat HandControlFTP::convert_tactile_data_to_image(const std::vector<std::vector<std::vector<uint16_t>>>& multi_tactile_data, int rows, int cols) {
     std::vector<cv::Mat> images;
 
     for (int ind = 0; ind < multi_tactile_data.size() - 1; ind++) {
@@ -585,7 +927,7 @@ cv::Mat hand_serial::convert_tactile_data_to_image(const std::vector<std::vector
 
 }
 
-bool hand_serial::get_tactile_data() {
+bool HandControlFTP::get_tactile_data() {
     std::vector<std::vector<std::vector<uint16_t>>> multi_tactile_data;
     for(int i = 0; i < tactile_read_lookup.size() - 1; i++) {
         uint16_t tactile_data[std::get<1>(tactile_read_lookup[i]) * std::get<2>(tactile_read_lookup[i])];
@@ -605,7 +947,7 @@ bool hand_serial::get_tactile_data() {
 }
 
 // Read a register
-int hand_serial::readRegister(int reg_addr) {
+int HandControlFTP::readRegister(int reg_addr) {
     std::lock_guard<std::mutex> lk(cmd_mutex_);
     uint16_t value;
     if (modbus_read_registers(ctx_, reg_addr, 1, &value) == -1) { // 只读取一个寄存器
@@ -615,7 +957,7 @@ int hand_serial::readRegister(int reg_addr) {
     return value; // 返回读取的值
 }
 
-int hand_serial::readRegisters(int reg_addr, int num_registers, uint16_t *tab_reg) {
+int HandControlFTP::readRegisters(int reg_addr, int num_registers, uint16_t *tab_reg) {
     std::lock_guard<std::mutex> lk(cmd_mutex_);
     if (modbus_read_registers(ctx_, reg_addr, num_registers, tab_reg) == -1) {
         ROS_ERROR("Failed to read registers starting at %d: %s", reg_addr, modbus_strerror(errno));
@@ -625,7 +967,7 @@ int hand_serial::readRegisters(int reg_addr, int num_registers, uint16_t *tab_re
 }
 
 // Write to a register
-int hand_serial::writeRegister(int reg_addr, int value) {
+int HandControlFTP::writeRegister(int reg_addr, int value) {
     std::lock_guard<std::mutex> lk(cmd_mutex_);
     if (modbus_write_register(ctx_, reg_addr, value) == -1) {
         ROS_ERROR("Failed to write register %d: %s", reg_addr, modbus_strerror(errno));
@@ -635,7 +977,7 @@ int hand_serial::writeRegister(int reg_addr, int value) {
 }
 
 // Write multiple registers (optional, if needed)
-int hand_serial::writeMultipleRegisters(int start_addr, const uint16_t *values, int num_values) {
+int HandControlFTP::writeMultipleRegisters(int start_addr, const uint16_t *values, int num_values) {
     std::lock_guard<std::mutex> lk(cmd_mutex_);
     if (modbus_write_registers(ctx_, start_addr, num_values, values) == -1) {
         ROS_ERROR("Failed to write registers starting at %d: %s", start_addr, modbus_strerror(errno));
@@ -645,7 +987,7 @@ int hand_serial::writeMultipleRegisters(int start_addr, const uint16_t *values, 
 }
 
 // Write multiple registers (optional, if needed)
-int hand_serial::writeMultipleRegisters(int start_addr, const double *values, int num_values) {
+int HandControlFTP::writeMultipleRegisters(int start_addr, const double *values, int num_values) {
     uint16_t tab_reg[6];
     for(int i = 0; i < 6; i++) {
         tab_reg[i] = static_cast<uint16_t>(values[i]);
@@ -653,4 +995,5 @@ int hand_serial::writeMultipleRegisters(int start_addr, const double *values, in
     return writeMultipleRegisters(start_addr, tab_reg, num_values); // Success
 }
 }
+
 #endif

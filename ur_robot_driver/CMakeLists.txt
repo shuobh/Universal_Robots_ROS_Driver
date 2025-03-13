@@ -123,20 +123,11 @@ add_dependencies(ur_robot_driver_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catk
 add_executable(ur_with_inspire_robot_driver_node
   src/dashboard_client_ros.cpp
   src/ur_with_inspire_hardware_interface.cpp
-  src/hand_control_lib.cpp
+  src/inspire_hand_control_lib.cpp
   src/ur_with_inspire_hardware_interface_node.cpp
 )
-target_link_libraries(ur_with_inspire_robot_driver_node ${catkin_LIBRARIES} ur_client_library::urcl urcl_log_handler)
+target_link_libraries(ur_with_inspire_robot_driver_node ${catkin_LIBRARIES} ur_client_library::urcl urcl_log_handler ${MODBUS_LIBRARIES} ${OpenCV_LIBRARIES})
 add_dependencies(ur_with_inspire_robot_driver_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-
-add_executable(ur_with_inspire_v2_robot_driver_node
-  src/dashboard_client_ros.cpp
-  src/ur_with_inspire_v2_hardware_interface.cpp
-  src/hand_control_lib_v2.cpp
-  src/ur_with_inspire_v2_hardware_interface_node.cpp
-)
-target_link_libraries(ur_with_inspire_v2_robot_driver_node ${catkin_LIBRARIES} ur_client_library::urcl urcl_log_handler ${MODBUS_LIBRARIES} ${OpenCV_LIBRARIES})
-add_dependencies(ur_with_inspire_v2_robot_driver_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 add_executable(ur_with_linker_robot_driver_node
   src/dashboard_client_ros.cpp
@@ -179,7 +170,7 @@ endif()
 
 
 install(TARGETS ur_robot_driver_plugin urcl_log_handler ur_robot_driver_node robot_state_helper dashboard_client
-                controller_stopper_node ur_with_inspire_robot_driver_node ur_with_inspire_v2_robot_driver_node
+                controller_stopper_node ur_with_inspire_robot_driver_node
                 ur_with_linker_robot_driver_node
                 ur_with_inspire_robot_driver_plugin
   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}

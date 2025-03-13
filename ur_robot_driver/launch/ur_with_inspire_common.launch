@@ -28,7 +28,8 @@
   <arg name="id" default= "1" />
   <arg name="port" default= "/dev/ttyUSB0" />
   <arg name="baud" default= "115200" />
-  <arg name="test_flag" default= "0" />
+  <arg name="hand_ip" default= "192.168.11.210" />
+  <arg name="hand_port" default= "6000" />
   <arg name="use_inspire_v2" default= "false" />
 
   <!-- robot model -->

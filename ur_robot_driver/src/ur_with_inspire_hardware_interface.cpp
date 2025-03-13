@@ -116,15 +116,6 @@ bool URwInspireHardwareInterface::init(ros::NodeHandle& root_nh, ros::NodeHandle
   // Port that will be opened to forward script commands from the driver to the robot
   int script_command_port = robot_hw_nh.param("script_command_port", 50004);
 
-  // ID of the hand controller. This is used to identify the hand controller in the driver.
-  int hand_id = robot_hw_nh.param("hand_id", 1);
-
-  // IP that will be used for the hand controller to communicate back to the driver.
-  std::string port_name = robot_hw_nh.param<std::string>("portname", "/dev/ttyUSB0");
-
-  // Port that will be opened to communicate between the driver and the hand controller.
-  int baudrate = robot_hw_nh.param("baudrate", 115200);
-
   // When the robot's URDF is being loaded with a prefix, we need to know it here, as well, in order
   // to publish correct frame names for frames reported by the robot directly.
   robot_hw_nh.param<std::string>("tf_prefix", tf_prefix_, "");
@@ -344,16 +335,42 @@ bool URwInspireHardwareInterface::init(ros::NodeHandle& root_nh, ros::NodeHandle
   // end
   command_sub_ = robot_hw_nh.subscribe("script_command", 1, &URwInspireHardwareInterface::commandCallback, this);
 
+  bool use_inspire_v2 = robot_hw_nh.param("use_inspire_v2", false);
+
+  inspire_hand_ = inspire_hand::HandControlFactory::create(use_inspire_v2);
+  if(use_inspire_v2) {
+    // ID of the hand controller. This is used to identify the hand controller in the driver.
+    int hand_id = robot_hw_nh.param("hand_id", 1);
+
+    // IP that will be used for the hand controller to communicate back to the driver.
+    std::string hand_ip = robot_hw_nh.param<std::string>("hand_ip", "192.168.11.210");
+
+    // Port that will be opened to communicate between the driver and the hand controller.
+    int hand_port = robot_hw_nh.param("hand_port", 6000);
+
+    inspire_hand_->initialize(hand_id, hand_ip, hand_port);
+  } else {
+    // ID of the hand controller. This is used to identify the hand controller in the driver.
+    int hand_id = robot_hw_nh.param("hand_id", 1);
+
+    // IP that will be used for the hand controller to communicate back to the driver.
+    std::string port_name = robot_hw_nh.param<std::string>("portname", "/dev/ttyUSB0");
+
+    // Port that will be opened to communicate between the driver and the hand controller.
+    int baudrate = robot_hw_nh.param("baudrate", 115200);
+  
+    inspire_hand_->initialize(hand_id, port_name, baudrate);
+  }
+
   // initialize the inspire hand
-  inspire_hand_.initialize(hand_id, port_name, baudrate);
-  inspire_hand_.set_force_calibration();
+  inspire_hand_->set_force_calibration();
   ros::Duration(5).sleep();
   for(int i = 0; i < 6; i++) {
-    inspire_hand_.setspeed_[i] = 1000;
-    inspire_hand_.setforce_[i] = 500;
+    inspire_hand_->setspeed_[i] = 1000;
+    inspire_hand_->setforce_[i] = 500;
   }
-  inspire_hand_.set_force(inspire_hand_.setforce_);
-  inspire_hand_.set_speed(inspire_hand_.setspeed_);
+  inspire_hand_->set_force(inspire_hand_->setforce_);
+  inspire_hand_->set_speed(inspire_hand_->setspeed_);
 
   hand_control_thread_ = std::thread(handCommunicationThread, std::ref(inspire_hand_), std::ref(hand_in_freedrive_), std::ref(in_freedrive_), std::ref(power_open_), std::ref(power_close_));
 
@@ -386,16 +403,16 @@ bool URwInspireHardwareInterface::init(ros::NodeHandle& root_nh, ros::NodeHandle
       svj_interface_.registerHandle(scaled_controllers::ScaledJointHandle(
           js_interface_.getHandle(joint_names_[i]), &joint_velocity_command_[i], &speed_scaling_combined_));
     } else {
-      js_interface_.registerHandle(hardware_interface::JointStateHandle(joint_names_[i], &inspire_hand_.curangle_[i-6], &inspire_hand_.curspeed_[i-6], &inspire_hand_.curforce_[i-6]));
+      js_interface_.registerHandle(hardware_interface::JointStateHandle(joint_names_[i], &inspire_hand_->curangle_[i-6], &inspire_hand_->curspeed_[i-6], &inspire_hand_->curforce_[i-6]));
       // Create joint position control interface
       pj_interface_.registerHandle(
-          hardware_interface::JointHandle(js_interface_.getHandle(joint_names_[i]), &inspire_hand_.setangle_cmd_[i-6]));
+          hardware_interface::JointHandle(js_interface_.getHandle(joint_names_[i]), &inspire_hand_->setangle_cmd_[i-6]));
       vj_interface_.registerHandle(
-          hardware_interface::JointHandle(js_interface_.getHandle(joint_names_[i]), &inspire_hand_.setangle_cmd_[i-6]));
+          hardware_interface::JointHandle(js_interface_.getHandle(joint_names_[i]), &inspire_hand_->setangle_cmd_[i-6]));
       spj_interface_.registerHandle(scaled_controllers::ScaledJointHandle(
-          js_interface_.getHandle(joint_names_[i]), &inspire_hand_.setangle_cmd_[i-6], &speed_scaling_combined_));
+          js_interface_.getHandle(joint_names_[i]), &inspire_hand_->setangle_cmd_[i-6], &speed_scaling_combined_));
       svj_interface_.registerHandle(scaled_controllers::ScaledJointHandle(
-          js_interface_.getHandle(joint_names_[i]), &inspire_hand_.setangle_cmd_[i-6], &speed_scaling_combined_));    }
+          js_interface_.getHandle(joint_names_[i]), &inspire_hand_->setangle_cmd_[i-6], &speed_scaling_combined_));    }
   }
 
   speedsc_interface_.registerHandle(scaled_controllers::SpeedScalingHandle(speed_scaling_id, &speed_scaling_combined_));
@@ -563,17 +580,17 @@ bool URwInspireHardwareInterface::init(ros::NodeHandle& root_nh, ros::NodeHandle
       "set_hand_force", [&](bluehill::SetFloats::Request& req, bluehill::SetFloats::Response& resp) {
         if(req.values.size() == 1) {
           for(int i = 0; i < 6; i++) {
-            inspire_hand_.setforce_[i] = req.values[0];
+            inspire_hand_->setforce_[i] = req.values[0];
           }
         } else if(req.values.size() == 6) {
           for(int i = 0; i < 6; i++) {
-            inspire_hand_.setforce_[i] = req.values[i];
+            inspire_hand_->setforce_[i] = req.values[i];
           }
         } else {
           resp.success = false;
           return true;
         }
-        resp.success = inspire_hand_.set_force(inspire_hand_.setforce_);
+        resp.success = inspire_hand_->set_force(inspire_hand_->setforce_);
         return true;
       });
 
@@ -582,17 +599,17 @@ bool URwInspireHardwareInterface::init(ros::NodeHandle& root_nh, ros::NodeHandle
       "set_hand_speed", [&](bluehill::SetFloats::Request& req, bluehill::SetFloats::Response& resp) {
         if(req.values.size() == 1) {
           for(int i = 0; i < 6; i++) {
-            inspire_hand_.setspeed_[i] = std::min(req.values[0], 1000.0);
+            inspire_hand_->setspeed_[i] = std::min(req.values[0], 1000.0);
           }
         } else if(req.values.size() == 6) {
           for(int i = 0; i < 6; i++) {
-            inspire_hand_.setspeed_[i] = std::min(req.values[i], 1000.0);
+            inspire_hand_->setspeed_[i] = std::min(req.values[i], 1000.0);
           }
         } else {
           resp.success = false;
           return true;
         }
-        resp.success = inspire_hand_.set_speed(inspire_hand_.setspeed_);
+        resp.success = inspire_hand_->set_speed(inspire_hand_->setspeed_);
         return true;
       });
 
@@ -777,9 +794,9 @@ void URwInspireHardwareInterface::read(const ros::Time& time, const ros::Duratio
         feedback.error.velocities.push_back(std::abs(joint_velocities_[i] - target_joint_velocities_[i]));
       }
       for (size_t i = 0; i < 6; i++) {
-        feedback.desired.positions.push_back(inspire_hand_.setangle_cmd_[i]);
-        feedback.actual.positions.push_back(inspire_hand_.curangle_[i]);
-        feedback.error.positions.push_back(std::abs(inspire_hand_.curangle_[i] - inspire_hand_.setangle_cmd_[i]));
+        feedback.desired.positions.push_back(inspire_hand_->setangle_cmd_[i]);
+        feedback.actual.positions.push_back(inspire_hand_->curangle_[i]);
+        feedback.error.positions.push_back(std::abs(inspire_hand_->curangle_[i] - inspire_hand_->setangle_cmd_[i]));
       }
       jnt_traj_interface_.setFeedback(feedback);
     }
@@ -1313,24 +1330,24 @@ bool URwInspireHardwareInterface::setIO(ur_msgs::SetIORequest& req, ur_msgs::Set
       if(req.state) {
           power_open_ = true;
           power_close_ = false;
-          inspire_hand_.get_error();
+          inspire_hand_->get_error();
           bool status_error = true;
           int error_count = 0;
           while(status_error && error_count < 3) {
             status_error = false;
             for(int i = 0; i < 6; i++) {
-              if(inspire_hand_.errorvalue_[i] > 0) {
+              if(inspire_hand_->errorvalue_[i] > 0) {
                 status_error = true;
               }
             }
             if(status_error) {
-                inspire_hand_.set_clear_error();
+                inspire_hand_->set_clear_error();
                 std::this_thread::sleep_for(std::chrono::milliseconds(500));
                 error_count++;
             }
           }
           if(error_count == 3) {
-            inspire_hand_.safety_mode = ur_dashboard_msgs::SafetyMode::PROTECTIVE_STOP;
+            inspire_hand_->safety_mode = ur_dashboard_msgs::SafetyMode::PROTECTIVE_STOP;
           }
       } else {
           power_close_ = true;
@@ -1450,7 +1467,7 @@ void URwInspireHardwareInterface::publishRobotAndSafetyMode()
     if (safety_mode_pub_->trylock())
     {
       safety_mode_pub_->msg_.mode = safety_mode_;
-      if(inspire_hand_.safety_mode == ur_dashboard_msgs::SafetyMode::PROTECTIVE_STOP) {
+      if(inspire_hand_->safety_mode == ur_dashboard_msgs::SafetyMode::PROTECTIVE_STOP) {
         safety_mode_pub_->msg_.mode = ur_dashboard_msgs::SafetyMode::PROTECTIVE_STOP;
       }
       safety_mode_pub_->unlockAndPublish();
@@ -1497,12 +1514,12 @@ void URwInspireHardwareInterface::startJointInterpolation(const hardware_interfa
     p[4] = point.positions[4];
     p[5] = point.positions[5];
     if(point.positions.size() == 12) {
-      inspire_hand_.setangle_cmd_[0] = point.positions[6];
-      inspire_hand_.setangle_cmd_[1] = point.positions[7];
-      inspire_hand_.setangle_cmd_[2] = point.positions[8];
-      inspire_hand_.setangle_cmd_[3] = point.positions[9];
-      inspire_hand_.setangle_cmd_[4] = point.positions[10];
-      inspire_hand_.setangle_cmd_[5] = point.positions[11];
+      inspire_hand_->setangle_cmd_[0] = point.positions[6];
+      inspire_hand_->setangle_cmd_[1] = point.positions[7];
+      inspire_hand_->setangle_cmd_[2] = point.positions[8];
+      inspire_hand_->setangle_cmd_[3] = point.positions[9];
+      inspire_hand_->setangle_cmd_[4] = point.positions[10];
+      inspire_hand_->setangle_cmd_[5] = point.positions[11];
     }
     double next_time = point.time_from_start.toSec();
     ur_driver_->writeTrajectoryPoint(p, false, next_time - last_time);
@@ -1544,7 +1561,7 @@ void URwInspireHardwareInterface::cancelInterpolation()
   ROS_DEBUG("Cancelling Trajectory");
   ur_driver_->writeTrajectoryControlMessage(urcl::control::TrajectoryControlMessage::TRAJECTORY_CANCEL);
   for(size_t i = 0; i < 6; i++) {
-    inspire_hand_.setangle_[i] = inspire_hand_.curangle_[i];
+    inspire_hand_->setangle_[i] = inspire_hand_->curangle_[i];
   }
 }
 
@@ -1593,32 +1610,32 @@ void URwInspireHardwareInterface::passthroughTrajectoryDoneCb(urcl::control::Tra
   }
 }
 
-void URwInspireHardwareInterface::handCommunicationThread(inspire_hand::hand_serial& inspire_hand, bool& hand_in_freedrive, bool& robot_in_freedrive, bool& power_open, bool& power_close) {
+void URwInspireHardwareInterface::handCommunicationThread(std::shared_ptr<inspire_hand::HandControlBase>& inspire_hand, bool& hand_in_freedrive, bool& robot_in_freedrive, bool& power_open, bool& power_close) {
   while (ros::ok()) {
     static int error_count = 0;
-    inspire_hand.get_actual_angle();
-    inspire_hand.get_actual_force();
-    inspire_hand.get_error();
+    inspire_hand->get_actual_angle();
+    inspire_hand->get_actual_force();
+    inspire_hand->get_error();
     bool status_error = false;
     for(int i = 0; i < 6; i++) {
-      if(inspire_hand.errorvalue_[i] > 0) {
+      if(inspire_hand->errorvalue_[i] > 0) {
         status_error = true;
       }
     }
     if(!status_error) {
-      inspire_hand.safety_mode = ur_dashboard_msgs::SafetyMode::NORMAL;
+      inspire_hand->safety_mode = ur_dashboard_msgs::SafetyMode::NORMAL;
     }
 
     if(power_open) {
       for(int i = 0; i < 5; i++) {
-        inspire_hand.setangle_[i] = inspire_hand::angle_lower_limit[i];
+        inspire_hand->setangle_[i] = inspire_hand::angle_lower_limit[i];
       }
       if(hand_in_freedrive || !robot_in_freedrive) {
         power_open = false;
       }
     } else if(power_close) {
       for(int i = 0; i < 5; i++) {
-        inspire_hand.setangle_[i] = inspire_hand::angle_upper_limit[i];
+        inspire_hand->setangle_[i] = inspire_hand::angle_upper_limit[i];
       }
       if(hand_in_freedrive || !robot_in_freedrive) {
         power_close = false;
@@ -1628,21 +1645,21 @@ void URwInspireHardwareInterface::handCommunicationThread(inspire_hand::hand_ser
       const std::vector<double> force_pos_threshold_lookup = {80, 80, 80, 80, 80, 80};
       const std::vector<double> force_neg_threshold_lookup = {-60, -60, -60, -60, -10, -220};
       for(int i = 0; i < 6; i++) {
-        if(fabs(inspire_hand.setangle_[i] - inspire_hand.curangle_[i]) < 0.05) {
+        if(fabs(inspire_hand->setangle_[i] - inspire_hand->curangle_[i]) < 0.05) {
           auto force_neg_threshold = force_neg_threshold_lookup[i];
-          if(inspire_hand.curangle_[i] > 0.5) {
+          if(inspire_hand->curangle_[i] > 0.5) {
             force_neg_threshold *= 2.0;
           }
-          if(inspire_hand.curforce_[i] > force_pos_threshold_lookup[i]) {
-            inspire_hand.setangle_[i] = std::max(inspire_hand.setangle_[i] - force_ratio_lookup[i] * (inspire_hand.curforce_[i] - force_pos_threshold_lookup[i]) / 2.0 , inspire_hand::angle_lower_limit[i]);
-          } else if(inspire_hand.curforce_[i] < force_neg_threshold) {
-            inspire_hand.setangle_[i] = std::min(inspire_hand.setangle_[i] - force_ratio_lookup[i] * (inspire_hand.curforce_[i] - force_neg_threshold_lookup[i]), inspire_hand::angle_upper_limit[i]);
+          if(inspire_hand->curforce_[i] > force_pos_threshold_lookup[i]) {
+            inspire_hand->setangle_[i] = std::max(inspire_hand->setangle_[i] - force_ratio_lookup[i] * (inspire_hand->curforce_[i] - force_pos_threshold_lookup[i]) / 2.0 , inspire_hand::angle_lower_limit[i]);
+          } else if(inspire_hand->curforce_[i] < force_neg_threshold) {
+            inspire_hand->setangle_[i] = std::min(inspire_hand->setangle_[i] - force_ratio_lookup[i] * (inspire_hand->curforce_[i] - force_neg_threshold_lookup[i]), inspire_hand::angle_upper_limit[i]);
           }
         }
       }
     } else {
       for(int i = 0; i < 6; i++) {
-        inspire_hand.setangle_[i] = inspire_hand.setangle_cmd_[i];
+        inspire_hand->setangle_[i] = inspire_hand->setangle_cmd_[i];
       }
     }
 
@@ -1651,42 +1668,42 @@ void URwInspireHardwareInterface::handCommunicationThread(inspire_hand::hand_ser
     static const int protection_count_threshold = 5;
     static std::vector<int> protection_count(6, 0);
     double set_angle[6];
-    set_angle[5] = inspire_hand.setangle_[5];
+    set_angle[5] = inspire_hand->setangle_[5];
     for(int i = 0; i < 5; i++) {
-      set_angle[i] = inspire_hand.setangle_[i];
-      if(inspire_hand.curforce_[i] > inspire_hand.setforce_[i] * 2) {
+      set_angle[i] = inspire_hand->setangle_[i];
+      if(inspire_hand->curforce_[i] > inspire_hand->setforce_[i] * 2) {
         if(protection_count[i] > protection_count_threshold) {
-          double scaled_step = (inspire_hand.curforce_[i] - inspire_hand.setforce_[i] * 2) / 200.0 * step + step;
-          inspire_hand.setangle_[i] = inspire_hand.curangle_[i] - scaled_step;
-          set_angle[i] = inspire_hand.curangle_[i] - scaled_step;
+          double scaled_step = (inspire_hand->curforce_[i] - inspire_hand->setforce_[i] * 2) / 200.0 * step + step;
+          inspire_hand->setangle_[i] = inspire_hand->curangle_[i] - scaled_step;
+          set_angle[i] = inspire_hand->curangle_[i] - scaled_step;
         } else {
           protection_count[i]++;
         }
       } else {
         protection_count[i] = 0;
-        if(!power_open && !hand_in_freedrive && inspire_hand.setangle_[i] > inspire_hand.curangle_[i]) {
-          if(inspire_hand.curforce_[i] > inspire_hand.setforce_[i] * 0.8 || fabs(inspire_hand.curangle_[i] - inspire_hand::angle_upper_limit[i]) < 0.05) {
-            inspire_hand.setangle_[i] = inspire_hand.curangle_[i];
+        if(!power_open && !hand_in_freedrive && inspire_hand->setangle_[i] > inspire_hand->curangle_[i]) {
+          if(inspire_hand->curforce_[i] > inspire_hand->setforce_[i] * 0.8 || fabs(inspire_hand->curangle_[i] - inspire_hand::angle_upper_limit[i]) < 0.05) {
+            inspire_hand->setangle_[i] = inspire_hand->curangle_[i];
             set_angle[i] = -1;
-          } else if(inspire_hand.curforce_[i] > inspire_hand.setforce_[i] * 0.4) {
-            inspire_hand.setangle_[i] = inspire_hand.curangle_[i] + step / 2.0;
-            set_angle[i] = inspire_hand.curangle_[i] + step / 2.0;
+          } else if(inspire_hand->curforce_[i] > inspire_hand->setforce_[i] * 0.4) {
+            inspire_hand->setangle_[i] = inspire_hand->curangle_[i] + step / 2.0;
+            set_angle[i] = inspire_hand->curangle_[i] + step / 2.0;
           }
         }
       }
     }
-    if(fabs(inspire_hand.curforce_[5]) > inspire_hand.setforce_[5] * 1.5) {
-      set_angle[5] = inspire_hand.setangle_[5];
+    if(fabs(inspire_hand->curforce_[5]) > inspire_hand->setforce_[5] * 1.5) {
+      set_angle[5] = inspire_hand->setangle_[5];
       if(protection_count[5] > protection_count_threshold) {
-        double scaled_step = (fabs(inspire_hand.curforce_[5]) - inspire_hand.setforce_[5] * 1.5) / 200.0 * step + step;
-        inspire_hand.setangle_[5] = inspire_hand.curangle_[5] - inspire_hand.curforce_[5] / fabs(inspire_hand.curforce_[5]) * scaled_step;
-        set_angle[5] = inspire_hand.setangle_[5];
+        double scaled_step = (fabs(inspire_hand->curforce_[5]) - inspire_hand->setforce_[5] * 1.5) / 200.0 * step + step;
+        inspire_hand->setangle_[5] = inspire_hand->curangle_[5] - inspire_hand->curforce_[5] / fabs(inspire_hand->curforce_[5]) * scaled_step;
+        set_angle[5] = inspire_hand->setangle_[5];
       } else {
         protection_count[5]++;
       }
     } else {
         protection_count[5] = 0;
-        if(fabs(inspire_hand.setangle_[5] - inspire_hand.curangle_[5]) < 0.05) {
+        if(fabs(inspire_hand->setangle_[5] - inspire_hand->curangle_[5]) < 0.05) {
           set_angle[5] = -1;
         }
     }
@@ -1699,7 +1716,7 @@ void URwInspireHardwareInterface::handCommunicationThread(inspire_hand::hand_ser
       }
     }
     if(move_update) {
-      inspire_hand.set_angle(set_angle);
+      inspire_hand->set_angle(set_angle);
     }
     std::this_thread::sleep_for(std::chrono::milliseconds(1));
   }

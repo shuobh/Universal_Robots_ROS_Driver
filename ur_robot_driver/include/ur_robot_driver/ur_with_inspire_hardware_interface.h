@@ -70,7 +70,7 @@
 #include <industrial_robot_status_interface/industrial_robot_status_interface.h>
 #include <kdl/frames.hpp>
 
-#include <inspire_hand/hand_control_lib.h>
+#include <inspire_hand/inspire_hand_control.h>
 
 namespace ur_driver
 {
@@ -237,7 +237,7 @@ protected:
 
   void passthroughTrajectoryDoneCb(urcl::control::TrajectoryResult result);
 
-  static void handCommunicationThread(inspire_hand::hand_serial& inspire_hand, bool& hand_in_freedrive, bool& robot_in_freedrive, bool& power_open, bool& power_close);
+  static void handCommunicationThread(std::shared_ptr<inspire_hand::HandControlBase>& inspire_hand, bool& hand_in_freedrive, bool& robot_in_freedrive, bool& power_open, bool& power_close);
 
   ros::ServiceServer deactivate_srv_;
   ros::ServiceServer tare_sensor_srv_;
@@ -361,7 +361,7 @@ protected:
   bool power_close_ = false;
   bool in_forcemode_ = false;
 
-  inspire_hand::hand_serial inspire_hand_;
+  std::shared_ptr<inspire_hand::HandControlBase> inspire_hand_;
   std::thread hand_control_thread_;
 
 };
