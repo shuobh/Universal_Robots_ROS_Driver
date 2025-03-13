@@ -639,7 +639,7 @@ bool URwInspireHardwareInterface::init(ros::NodeHandle& root_nh, ros::NodeHandle
               }
             }
           }
-          resp.success = ur_driver_->startForceMode(task_frame, selection_vector, wrench, force_mode_type, limits);
+          resp.success = ur_driver_->startForceMode(task_frame, selection_vector, wrench, force_mode_type, limits, req.force_move.damping_factor, req.force_move.gain_scaling_factor);
           in_forcemode_ = true;
         } else {
           resp.success = ur_driver_->endForceMode();

@@ -566,7 +566,7 @@ bool URwLinkerHardwareInterface::init(ros::NodeHandle& root_nh, ros::NodeHandle&
                                      req.force_move.force[3], req.force_move.force[4], req.force_move.force[5]};
           int32_t force_mode_type = 2;
           // For non-compliance directions, this will set max deviation in m and rad
-          urcl::vector6d_t limits = { 0.01, 0.01, 0.01, 0.03, 0.03, 0.03 };
+          urcl::vector6d_t limits = { 0.01, 0.01, 0.01, 0.05, 0.05, 0.05 };
           for(int i = 0; i < 6; i++) {
             if(req.force_move.compliance[i]) {
               // For compliance directions, this will set max speed in m/s and rad/s
@@ -575,16 +575,16 @@ bool URwLinkerHardwareInterface::init(ros::NodeHandle& root_nh, ros::NodeHandle&
               if(req.force_move.force[i] == 0) {
                 scale = 0.2;
               } else {
-                scale = (10.0 - std::min(10.0, std::fabs(req.force_move.force[i]))) / 10.0 + 1.0;
+                scale = std::min(10.0, std::fabs(req.force_move.force[i])) / 10.0;
               }
               if(i < 3) {
-                limits[i] = 0.3 * scale;
+                limits[i] = 0.1 * scale;
               } else {
-                limits[i] = 0.3 * scale;
+                limits[i] = 0.5 * scale;
               }
             }
           }
-          resp.success = ur_driver_->startForceMode(task_frame, selection_vector, wrench, force_mode_type, limits);
+          resp.success = ur_driver_->startForceMode(task_frame, selection_vector, wrench, force_mode_type, limits, req.force_move.damping_factor, req.force_move.gain_scaling_factor);
           in_forcemode_ = true;
         } else {
           resp.success = ur_driver_->endForceMode();
