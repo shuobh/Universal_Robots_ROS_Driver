@@ -68,7 +68,6 @@
     <arg name ="id" value="$(arg id)" />
     <arg name ="port" value="$(arg port)" />
     <arg name ="baud" value="$(arg baud)" />
-    <arg name ="test_flag" value="$(arg test_flag)" />
     <arg name ="use_inspire_v2" value="$(arg use_inspire_v2)" />
   </include>
 </launch>
