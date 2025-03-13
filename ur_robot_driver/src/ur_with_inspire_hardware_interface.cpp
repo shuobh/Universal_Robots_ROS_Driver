@@ -1628,32 +1628,30 @@ void URwInspireHardwareInterface::handCommunicationThread(std::shared_ptr<inspir
 
     if(power_open) {
       for(int i = 0; i < 5; i++) {
-        inspire_hand->setangle_[i] = inspire_hand::angle_lower_limit[i];
+        inspire_hand->setangle_[i] = inspire_hand->angle_lower_limit[i];
       }
       if(hand_in_freedrive || !robot_in_freedrive) {
         power_open = false;
       }
     } else if(power_close) {
       for(int i = 0; i < 5; i++) {
-        inspire_hand->setangle_[i] = inspire_hand::angle_upper_limit[i];
+        inspire_hand->setangle_[i] = inspire_hand->angle_upper_limit[i];
       }
       if(hand_in_freedrive || !robot_in_freedrive) {
         power_close = false;
       }
     } else if(hand_in_freedrive) {
-      const std::vector<double> force_ratio_lookup = {0.00147, 0.00147, 0.00147, 0.00147, 0.0006, 0.001308};
-      const std::vector<double> force_pos_threshold_lookup = {80, 80, 80, 80, 80, 80};
-      const std::vector<double> force_neg_threshold_lookup = {-60, -60, -60, -60, -10, -220};
       for(int i = 0; i < 6; i++) {
         if(fabs(inspire_hand->setangle_[i] - inspire_hand->curangle_[i]) < 0.05) {
-          auto force_neg_threshold = force_neg_threshold_lookup[i];
+          auto force_neg_threshold = inspire_hand->force_neg_threshold_lookup[i];
           if(inspire_hand->curangle_[i] > 0.5) {
             force_neg_threshold *= 2.0;
           }
-          if(inspire_hand->curforce_[i] > force_pos_threshold_lookup[i]) {
-            inspire_hand->setangle_[i] = std::max(inspire_hand->setangle_[i] - force_ratio_lookup[i] * (inspire_hand->curforce_[i] - force_pos_threshold_lookup[i]) / 2.0 , inspire_hand::angle_lower_limit[i]);
+          double force_ratio_lookup = 0.001 * (inspire_hand->angle_upper_limit[i] - inspire_hand->angle_lower_limit[i]);
+          if(inspire_hand->curforce_[i] > inspire_hand->force_pos_threshold_lookup[i]) {
+            inspire_hand->setangle_[i] = std::max(inspire_hand->setangle_[i] - force_ratio_lookup * (inspire_hand->curforce_[i] - inspire_hand->force_pos_threshold_lookup[i]) / 2.0 , inspire_hand->angle_lower_limit[i]);
           } else if(inspire_hand->curforce_[i] < force_neg_threshold) {
-            inspire_hand->setangle_[i] = std::min(inspire_hand->setangle_[i] - force_ratio_lookup[i] * (inspire_hand->curforce_[i] - force_neg_threshold_lookup[i]), inspire_hand::angle_upper_limit[i]);
+            inspire_hand->setangle_[i] = std::min(inspire_hand->setangle_[i] - force_ratio_lookup * (inspire_hand->curforce_[i] - inspire_hand->force_neg_threshold_lookup[i]), inspire_hand->angle_upper_limit[i]);
           }
         }
       }
@@ -1682,7 +1680,7 @@ void URwInspireHardwareInterface::handCommunicationThread(std::shared_ptr<inspir
       } else {
         protection_count[i] = 0;
         if(!power_open && !hand_in_freedrive && inspire_hand->setangle_[i] > inspire_hand->curangle_[i]) {
-          if(inspire_hand->curforce_[i] > inspire_hand->setforce_[i] * 0.8 || fabs(inspire_hand->curangle_[i] - inspire_hand::angle_upper_limit[i]) < 0.05) {
+          if(inspire_hand->curforce_[i] > inspire_hand->setforce_[i] * 0.8 || fabs(inspire_hand->curangle_[i] - inspire_hand->angle_upper_limit[i]) < 0.05) {
             inspire_hand->setangle_[i] = inspire_hand->curangle_[i];
             set_angle[i] = -1;
           } else if(inspire_hand->curforce_[i] > inspire_hand->setforce_[i] * 0.4) {

@@ -14,11 +14,6 @@
 #include <tf/transform_broadcaster.h>
 
 namespace inspire_hand {
-
-// Define the maximum and minimum angle limits for the hand
-const double angle_upper_limit[] = {1.47, 1.47, 1.47, 1.47, 0.6, 1.308};
-const double angle_lower_limit[] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
-
 // Base class for hand control
 class HandControlBase {
 public:
@@ -66,6 +61,10 @@ public:
     double statusvalue_[6];
     double tempvalue_[6];
     int32_t safety_mode = 1;
+    std::vector<double> angle_upper_limit;
+    std::vector<double> angle_lower_limit;
+    std::vector<double> force_pos_threshold_lookup;
+    std::vector<double> force_neg_threshold_lookup;
 
 protected:
     std::mutex cmd_mutex_;
@@ -74,7 +73,12 @@ protected:
 // TCP/Modbus implementation
 class HandControlFTP : public HandControlBase {
 public:
-    HandControlFTP() {};
+    HandControlFTP() {
+        angle_upper_limit = {1.6, 1.6, 1.6, 1.6, 0.92, 1.7};
+        angle_lower_limit = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+        force_pos_threshold_lookup = {80, 80, 80, 80, 80, 80};
+        force_neg_threshold_lookup = {-20, -20, -20, -20, -10, -80};
+    };
     ~HandControlFTP();
 
     void initialize(int hand_id, const std::string& ip_address, int port) override;
@@ -134,7 +138,12 @@ public:
 // Serial implementation  
 class HandControlSerial : public HandControlBase {
 public:
-    HandControlSerial() {};
+    HandControlSerial() {
+        angle_upper_limit = {1.47, 1.47, 1.47, 1.47, 0.6, 1.308};
+        angle_lower_limit = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+        force_pos_threshold_lookup = {80, 80, 80, 80, 80, 80};
+        force_neg_threshold_lookup = {-60, -60, -60, -60, -10, -220};
+    };
     ~HandControlSerial();
 
     void initialize(int hand_id, const std::string& port_name, int baudrate) override;
