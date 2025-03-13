@@ -86,41 +86,74 @@ bool hand_serial::set_reg(const double values[6], uint8_t pin1, uint8_t pin2, do
     output.push_back(check_sum(output) & 0xff);
 
     //Send message to the module
-    com_port_->write(output);
+    try {
+        com_port_->write(output);
+    } catch (const serial::SerialException& e) {
+        ROS_ERROR("Serial write error: %s", e.what());
+        return false;
+    } catch (const std::exception& e) {
+        ROS_ERROR("Error writing to serial port: %s", e.what());
+        return false;
+    }
 
     ros::Duration(delay).sleep();
 
     //Read response
     std::vector<uint8_t> input;
-    while (input.empty()) {
-        com_port_->read(input, (size_t)64);
+    try {
+        while (input.empty()) {
+            com_port_->read(input, (size_t)64);
+        }
+        return input[7];
+    } catch (const serial::SerialException& e) {
+        ROS_ERROR("Serial read error: %s", e.what());
+        return false;
+    } catch (const std::exception& e) {
+        ROS_ERROR("Error reading from serial port: %s", e.what());
+        return false;
     }
-    return input[7];
 }
 
-void hand_serial::get_reg(double (&values)[6], uint8_t pin1, uint8_t pin2, bool bit7, double delay) {
+bool hand_serial::get_reg(double (&values)[6], uint8_t pin1, uint8_t pin2, bool bit7, double delay) {
     std::lock_guard<std::mutex> lk(cmd_mutex_);
     std::vector<uint8_t> output ={0xEB, 0x90, hand_id_, 0x04, 0x11, pin1, pin2, bit7 ? 0x06:0x0C};
 
     //Add checksum 
     output.push_back(check_sum(output) & 0xff);
     //Send message to the module
-    com_port_->write(output);
+    try {
+        com_port_->write(output);
+    } catch (const serial::SerialException& e) {
+        ROS_ERROR("Serial write error: %s", e.what());
+        return false;
+    } catch (const std::exception& e) {
+        ROS_ERROR("Error writing to serial port: %s", e.what());
+        return false;
+    }
 
     ros::Duration(delay).sleep();
 
     //Read response
     std::vector<uint8_t> input;
-    while (input.empty()) {
-        com_port_->read(input, (size_t)64);
-    }
+    try {
+        while (input.empty()) {
+            com_port_->read(input, (size_t)64);
+        }
 
-    if(bit7) {
-        for (int j = 0; j<6; j++)
-            values[j] = double(input[7 + j]);
-    } else {
-        for (int j = 0; j<6; j++)
-            values[j] = double(((input[8 + j * 2] << 8) & 0xff00) + input[7 + j * 2]);
+        if(bit7) {
+            for (int j = 0; j<6; j++)
+                values[j] = double(input[7 + j]);
+        } else {
+            for (int j = 0; j<6; j++)
+                values[j] = double(((input[8 + j * 2] << 8) & 0xff00) + input[7 + j * 2]);
+        }
+        return true;
+    } catch (const serial::SerialException& e) {
+        ROS_ERROR("Serial read error: %s", e.what());
+        return false;
+    } catch (const std::exception& e) {
+        ROS_ERROR("Error reading from serial port: %s", e.what());
+        return false;
     }
 }
 
@@ -250,59 +283,69 @@ bool hand_serial::set_speed(const double speed[6]) {
     return set_reg(speed, 0xF2, 0x05);
 }
 
-void hand_serial::get_actual_position() {
-    get_reg(curpos_, 0xFE, 0x05);
+bool hand_serial::get_actual_position() {
+    return get_reg(curpos_, 0xFE, 0x05);
 }
 
-void hand_serial::get_actual_angle() {
+bool hand_serial::get_actual_angle() {
     double angle[6];
-    get_reg(angle, 0x0A, 0x06);
-    for(int i = 0; i<6; i++) {
-        curangle_[i] = (1000.0 - angle[i]) / 1000.0 * (angle_upper_limit[i] - angle_lower_limit[i]);
+    bool success = get_reg(angle, 0x0A, 0x06);
+    if(success) {
+        for(int i = 0; i<6; i++) {
+            curangle_[i] = (1000.0 - angle[i]) / 1000.0 * (angle_upper_limit[i] - angle_lower_limit[i]);
+        }
     }
+    return success;
 }
 
-void hand_serial::get_actual_force() {
+bool hand_serial::get_actual_force() {
     double force[6];
-    get_reg(force, 0x2E, 0x06);
-    for(int i = 0; i<6; i++)
-        curforce_[i] = force[i]>32768?force[i]-65536:force[i];
+    bool success = get_reg(force, 0x2E, 0x06);
+    if(success) {
+        for(int i = 0; i<6; i++)
+            curforce_[i] = force[i]>32768?force[i]-65536:force[i];
+    }
+    return success;
 }
 
-void hand_serial::get_actual_current() {
-    get_reg(current_, 0x3A, 0x06);
+bool hand_serial::get_actual_current() {
+    return get_reg(current_, 0x3A, 0x06);
 }
 
 uint8_t hand_serial::get_error() {
-    get_reg(errorvalue_, 0x46, 0x06, true);
+    bool success = get_reg(errorvalue_, 0x46, 0x06, true);
+    if (!success) return 0xff;
     if (errorvalue_[0] == 0 && errorvalue_[1] == 0 &&errorvalue_[2] == 0 &&errorvalue_[3] == 0 &&errorvalue_[4] == 0 &&errorvalue_[5] == 0)
         return((uint8_t)0x00);
     else
         return((uint8_t)0xff);
 }
 
-void hand_serial::get_status() {
-    get_reg(statusvalue_, 0x4C, 0x06, true);
+bool hand_serial::get_status() {
+    return get_reg(statusvalue_, 0x4C, 0x06, true);
 }
 
-void hand_serial::get_temp() {
-    get_reg(tempvalue_, 0x52, 0x06, true);
+bool hand_serial::get_temp() {
+    return get_reg(tempvalue_, 0x52, 0x06, true);
 }
 
-void hand_serial::get_set_position() {
-    get_reg(setpos_, 0xC2, 0x05);
+bool hand_serial::get_set_position() {
+    return get_reg(setpos_, 0xC2, 0x05);
 }
 
-void hand_serial::get_set_angle() {
+bool hand_serial::get_set_angle() {
     double angle[6];
-    get_reg(angle, 0xCE, 0x05);
-    for(int i = 0; i<6; i++) {
-        setangle_[i] = (1000.0 - angle[i]) / 1000.0 * (angle_upper_limit[i] - angle_lower_limit[i]);
+    bool success = get_reg(angle, 0xCE, 0x05);
+    if(success) {
+        for(int i = 0; i<6; i++) {
+            setangle_[i] = (1000.0 - angle[i]) / 1000.0 * (angle_upper_limit[i] - angle_lower_limit[i]);
+        }
     }
+    return success;
 }
 
-void hand_serial::get_force_set() {
-    get_reg(setforce_, 0xDA, 0x05);
+bool hand_serial::get_force_set() {
+    return get_reg(setforce_, 0xDA, 0x05);
 }
 }
 

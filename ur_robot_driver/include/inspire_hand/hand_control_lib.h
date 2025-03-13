@@ -33,14 +33,6 @@ public:
     ~hand_serial();
     void initialize(int hand_id, std::string port_name, int baudrate);
 
-    int connect();
-
-    //Send and receive data via register
-    bool set_reg(const int value, uint8_t pin1, uint8_t pin2, double delay=0.005);
-    bool set_reg(const double values[6], uint8_t pin1, uint8_t pin2, double delay=0.005);
-    void get_reg(double (&values)[6], uint8_t pin1, uint8_t pin2, bool bit7=false, double delay=0.005);
-    unsigned int check_sum(const std::vector<uint8_t>& output);
-
     //Set the id of the hand
     bool set_id(int id);
 
@@ -87,46 +79,34 @@ public:
     bool set_speed(const double speed[6]);
 
     //Get the actual position of the hand
-    void get_actual_position();
+    bool get_actual_position();
 
     //Get the actual angle of the hand
-    void get_actual_angle();
+    bool get_actual_angle();
 
     //Get the actual force of the hand
-    void get_actual_force();
+    bool get_actual_force();
 
     //Get the actual current of the hand
-    void get_actual_current();
+    bool get_actual_current();
 
     //Get the error of the hand
     uint8_t get_error();
 
     //Get the status of the hand
-    void get_status();
+    bool get_status();
 
     //Get the temperature of the hand
-    void get_temp();
+    bool get_temp();
 
     //Get set position
-    void get_set_position();
+    bool get_set_position();
 
     //Get set angle
-    void get_set_angle();
+    bool get_set_angle();
 
     //Get set force
-    void get_force_set();
-
-    /** \brief Set periodic position reading by GET_STATE(0x95) command */
-    //void getPeriodicPositionUpdate(double update_frequency);
-
-    /** \brief Function to determine checksum*/
-    uint16_t CRC16(uint16_t crc, uint16_t data);
-
-    /** \brief Conversion from 4 bytes to double*/
-    double IEEE_754_to_double(uint8_t *raw);
-
-    /** \brief Conversion from double to 4 bytes*/
-    void double_to_IEEE_754(double position, unsigned int *output_array);
+    bool get_force_set();
 
     //Launch params
     int hand_id_;
@@ -152,16 +132,27 @@ public:
     serial::Serial *com_port_;
 
 private:
-    //Consts
+    int connect();
 
+    //Send and receive data via register
+    bool set_reg(const int value, uint8_t pin1, uint8_t pin2, double delay=0.005);
+    bool set_reg(const double values[6], uint8_t pin1, uint8_t pin2, double delay=0.005);
+    bool get_reg(double (&values)[6], uint8_t pin1, uint8_t pin2, bool bit7=false, double delay=0.005);
+    unsigned int check_sum(const std::vector<uint8_t>& output);
+
+    /** \brief Function to determine checksum*/
+    uint16_t CRC16(uint16_t crc, uint16_t data);
+
+    /** \brief Conversion from 4 bytes to double*/
+    double IEEE_754_to_double(uint8_t *raw);
+
+    /** \brief Conversion from double to 4 bytes*/
+    void double_to_IEEE_754(double position, unsigned int *output_array);
+
+    //Consts
     std::mutex cmd_mutex_;
-    //static const double MIN_GRIPPER_VEL_LIMIT = 0;
-    //static const double MAX_GRIPPER_VEL_LIMIT = 83;
-    //static const double MIN_GRIPPER_ACC_LIMIT = 0;
-    //static const double MAX_GRIPPER_ACC_LIMIT = 320;
     static constexpr double WAIT_FOR_RESPONSE_INTERVAL = 0.5;
     static constexpr double INPUT_BUFFER_SIZE = 64;
-    //static const int    URDF_SCALE_FACTOR = 2000;
 
 };
 }

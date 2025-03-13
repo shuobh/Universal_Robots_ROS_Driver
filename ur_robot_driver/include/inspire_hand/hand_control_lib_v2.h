@@ -25,53 +25,28 @@ public:
     void initialize(int hand_id, std::string ip_address, int port);
 
     bool get_error();
-    
     bool get_actual_force();
-    
     bool get_actual_current();
-    
     bool get_set_angle();
-                              
     bool get_actual_angle();
-                                 
     bool get_set_force();
-    
     bool get_temp();
-    
     bool get_set_position();
-                            
     bool get_actual_position();
-                            
     bool get_status();
-                                                                                                                    
-    bool set_clear_error();         
-                              
+    bool set_clear_error();
     bool set_id(int id);
-
     bool set_redu_ratio(int redu_ratio);
-    
     bool set_position(const double pos[6]);
-    
     bool set_gesture_number(int gesture_no);
-    
     bool set_speed(const double speed[6]);
-                          
     bool set_default_speed(const double speed[6]);
-    
     bool set_angle(const double angle[6]);
-                      
     bool set_force_calibration();
-                              
-    bool set_force(const double force[6]); 
-                          
+    bool set_force(const double force[6]);
     bool set_default_force(const double force[6]);
-                                  
     bool set_current_limit(const double current_limit[6]);
-    
     bool set_reset_parameters();
-
-    cv::Mat convert_tactile_data_to_image(const std::vector<std::vector<std::vector<uint16_t>>>& multi_tactile_data, int rows=256, int cols=256);
-    std::vector<std::vector<uint16_t>> resize_tactile_data(uint16_t *v, int rows, int cols);
     bool get_tactile_data();
 
     //hand state variables              
@@ -102,7 +77,10 @@ private:
     std::string ip_address_;
     int port_;
 
-    // ...其他设置函数...
+    // Helper functions that can be private
+    cv::Mat convert_tactile_data_to_image(const std::vector<std::vector<std::vector<uint16_t>>>& multi_tactile_data, int rows=256, int cols=256);
+    std::vector<std::vector<uint16_t>> resize_tactile_data(uint16_t *v, int rows, int cols);
+
     // 读取和写入 Modbus 数据的通用方法
     int readRegister(int reg_addr);
     int readRegisters(int reg_addr, int num_registers, uint16_t *tab_reg);
@@ -119,4 +97,3 @@ private:
 } // namespace inspire_hand
 
 #endif
-
