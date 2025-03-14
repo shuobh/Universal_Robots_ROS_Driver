@@ -186,12 +186,8 @@ private:
     bool set_reg(const double values[6], uint8_t pin1, uint8_t pin2, double delay=0.005);
     bool get_reg(double (&values)[6], uint8_t pin1, uint8_t pin2, bool bit7=false, double delay=0.005);
     unsigned int check_sum(const std::vector<uint8_t>& output);
-    uint16_t CRC16(uint16_t crc, uint16_t data);
-    double IEEE_754_to_double(uint8_t* raw);
-    void double_to_IEEE_754(double position, unsigned int* output_array);
 
     static constexpr double WAIT_FOR_RESPONSE_INTERVAL = 0.5;
-    static constexpr double INPUT_BUFFER_SIZE = 64;
 };
 
 // Factory class for creating hand control instances
